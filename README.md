@@ -1,11 +1,11 @@
-RNA. TV — Ultimate Android TV & Google TV Launcher, Web Container & AI Ecosystem
+*```RNA. TV``` — Ultimate Android TV & Google TV Launcher, Web Container & AI Ecosystem*
 
 ![Image](app/src/main/res/drawable/ic_tv_banner.png)
 
-RNA. TV is a next-generation, high-performance, ad-free Android TV / Google TV launcher and application runtime built with Kotlin and Jetpack Compose. It bridges native Android capabilities with web applications (.rna bundles), offering a sleek Material Design 3 Expressive interface, multi-user profiles, 4K wallpapers, autonomous AI agent abilities, advanced remote remapping, and cross-device phone control.
+```RNA. TV``` is a next-generation, high-performance, ad-free Android TV / Google TV launcher and application runtime built with Kotlin and Jetpack Compose. It bridges native Android capabilities with web applications (.rna bundles), offering a sleek Material Design 3 Expressive interface, multi-user profiles, 4K wallpapers, autonomous AI agent abilities, advanced remote remapping, and cross-device phone control.
 
 
-🌟 Key Features
+```🌟*Key Features*```
 
 Ad-Free Google TV Launcher: Clean, lightning-fast home screen with customizable single-row or two-row app docks, recent apps history, and instant app launching.
 
@@ -24,7 +24,7 @@ RNA. Controller & Gamepad Bridge: Control your TV from your phone over local Wi-
 Performance Mode: Instant toggle in the Control Panel that disables all animations for maximum speed on resource-constrained TV boxes.
 
 
-📥 Installation & Setup Instructions
+```📥*Installation & Setup Instructions*```
 
 To install and configure RNA. TV on your Android TV or Google TV device, follow these step-by-step instructions:
 
@@ -51,7 +51,7 @@ Find RNA. (or RNA. Home Interceptor Service) in the list of services and toggle 
 Grant any other requested permissions (such as Display over other apps and Usage Access) when prompted during first launch to enable Live AI assistant overlays and fast app switching.
 
 
-🛠️ Control Panel & Performance Customization
+```🛠️*Control Panel & Performance Customization*```
 
 Press the Controls button in the top bar of RNA. TV to open the Control Panel:
 
@@ -63,5 +63,8 @@ Toggle Performance Mode to instantly remove animations for maximum responsivenes
 
 Set sleep timers, adjust night blue-light warmth filters, and configure voice assistant settings.
 
-📄 License & Open Source
+```📄*License & Open Source*```
+
 RNA. TV is built for high performance and privacy. All profiles, browser sessions, and preferences are stored 100% locally on your device.
+
+Open-Source code is shared along the install .apk file.
