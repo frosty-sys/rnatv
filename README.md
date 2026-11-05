@@ -30,7 +30,9 @@ To install and configure RNA. TV on your Android TV or Google TV device, follow 
 
 Step 1: Install "Send Files to TV" (SFTV) on TV and Phone
 On your Android TV / Google TV, open the Google Play Store, search for "Send Files to TV" (SFTV), and install it.
+
 [Note: after this step it is recommended to disabled Google Play Store while installation from Settings>Apps>View all Apps>Google Pay Store as otherwise it is very likely that Google would block the install of the RNA. TV apk. Once the RNA. TV app has been installed, you can enable Google Play Store back again.]
+
 On your Android Phone / Tablet, open the Google Play Store, search for "Send Files to TV" (SFTV), and install the companion app.
 
 Step 2: Transfer the .rna / APK File to Your TV
