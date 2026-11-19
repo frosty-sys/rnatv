@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/metadata/android/en-US/images/icon.png" alt="RNA. TV CIRCULAR ICON" width="128" height="128">
+<img src="app/metadata/android/en-US/images/cropped_circular_image.png" alt="RNA. TV CIRCULAR ICON" width="128" height="128">
 
 # RNA TV
 
