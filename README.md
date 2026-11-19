@@ -1,4 +1,10 @@
-*[```RNA. TV```](https://github.com/frosty-sys/rnatv/releases) — Ultimate Android TV & Google TV Launcher, Web Container & AI Ecosystem*
+<div align="center">
+
+<img src="app/metadata/android/en-US/images/icon.png" alt="RNA. TV CIRCULAR ICON" width="128" height="128">
+
+# RNA TV
+
+*[```RNA. TV```](https://github.com/frosty-sys/rnatv/releases) is the ultimate Android TV & Google TV Launcher, Web Container & AI Ecosystem*
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/pgxor/com.vadhod.apkextractor?style=flat-square&label=release)](https://github.com/pgxor/com.vadhod.apkextractor/releases/latest)
@@ -6,6 +12,7 @@
 [![Android 10+](https://img.shields.io/badge/Android-10%2B%20(API%2029)-3DDC84?style=flat-square&logo=android&logoColor=white)](#requirements)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
+</div>
 
 ![Image](app/src/main/res/drawable/ic_tv_banner.png)
 
