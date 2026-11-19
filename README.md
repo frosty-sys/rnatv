@@ -1,4 +1,4 @@
-*```RNA. TV``` — Ultimate Android TV & Google TV Launcher, Web Container & AI Ecosystem*
+*[```RNA. TV```](https://github.com/frosty-sys/rnatv/releases) — Ultimate Android TV & Google TV Launcher, Web Container & AI Ecosystem*
 
 ![Image](app/src/main/res/drawable/ic_tv_banner.png)
 
@@ -70,4 +70,4 @@ Set sleep timers, adjust night blue-light warmth filters, and configure voice as
 
 RNA. TV is built for high performance and privacy. All profiles, browser sessions, and preferences are stored 100% locally on your device.
 
-This project is open source and licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for details. Complete source code is available in this repository and bundled alongside every `.apk` in [Releases](https://github.com).
+This project is open source and licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for details. Complete source code is available in this repository and bundled alongside every `.apk` in [releases](https://github.com/frosty-sys/rnatv/releases).
