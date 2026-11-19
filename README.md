@@ -66,8 +66,8 @@ Toggle Performance Mode to instantly remove animations for maximum responsivenes
 
 Set sleep timers, adjust night blue-light warmth filters, and configure voice assistant settings.
 
-```📄*License & Open Source*```
+📄 ```License & Open Source```
 
 RNA. TV is built for high performance and privacy. All profiles, browser sessions, and preferences are stored 100% locally on your device.
 
-Open-Source code is shared along the install .apk file.
+This project is open source and licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for details. Complete source code is available in this repository and bundled alongside every `.apk` in [Releases](https://github.com).
