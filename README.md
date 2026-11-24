@@ -68,6 +68,7 @@ Press the **Controls** button in the top bar of RNA. TV to open the Control Pane
 * Toggle **YT Search Widget** ON/OFF.
 * Toggle **Startup Wallpaper Splash Screen** ON/OFF.
 * Toggle **Performance Mode** to instantly remove animations for maximum responsiveness.
+* **Updates** (`Control Panel > Functions > Updates`) to download and install new RNA. TV releases directly on your device.
 * Open **Remapper** from Functions tab to quickly customize your remote buttons.
 * Set sleep timers, adjust night blue-light warmth filters, and configure voice assistant settings.
 
