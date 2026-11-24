@@ -73,6 +73,12 @@ Press the **Controls** button in the top bar of RNA. TV to open the Control Pane
 
 ---
 
+## 🤝 Contributing
+
+Contributions, bug reports, and feature requests are welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines before submitting a pull request or opening an issue.
+
+---
+
 ## 📄 License & Open Source
 
 RNA. TV is built for high performance and privacy. All profiles, browser sessions, and preferences are stored 100% locally on your device. 
