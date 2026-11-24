@@ -65,9 +65,10 @@ To ensure that pressing the **Home** or **Back** button on your TV remote always
 ## 🛠️ Control Panel & Performance Customization
 
 Press the **Controls** button in the top bar of RNA. TV to open the Control Panel:
-* Toggle **Glass Orb Hover Animation** ON/OFF.
+* Toggle **YT Search Widget** ON/OFF.
 * Toggle **Startup Wallpaper Splash Screen** ON/OFF.
 * Toggle **Performance Mode** to instantly remove animations for maximum responsiveness.
+* Open **Remapper** from Functions tab to quickly customize your remote buttons.
 * Set sleep timers, adjust night blue-light warmth filters, and configure voice assistant settings.
 
 ---
