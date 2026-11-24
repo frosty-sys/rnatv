@@ -14,7 +14,7 @@
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
 </div>
 
-![Image](app/src/main/res/drawable/ic_tv_banner.png)
+![Image](app/src/main/res/drawable/ic_tv_banner2.png)
 
 ```RNA. TV``` is a next-generation, high-performance, ad-free Android TV / Google TV launcher and application runtime built with Kotlin and Jetpack Compose. It bridges native Android capabilities with web applications (.rna bundles), offering a sleek Material Design 3 Expressive interface, multi-user profiles, 4K wallpapers, autonomous AI agent abilities, advanced remote remapping, and cross-device phone control.
 
