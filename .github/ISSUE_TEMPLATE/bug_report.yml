@@ -1,0 +1,79 @@
+name: 🐛 Bug Report
+description: Report a crash, D-Pad navigation issue, or unexpected behavior in RNA. TV
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please check existing issues first to avoid duplicates.
+
+  - type: input
+    id: app-version
+    attributes:
+      label: RNA. TV Version
+      description: Which version of RNA. TV are you running? (Check Controls > Functions > Updates)
+      placeholder: e.g., v3.7.6
+    validations:
+      required: true
+
+  - type: input
+    id: device-model
+    attributes:
+      label: TV / Streaming Device Model
+      description: What hardware are you running RNA. TV on?
+      placeholder: e.g., Chromecast with Google TV 4K, Nvidia Shield, Mi Box S, Sony Bravia
+    validations:
+      required: true
+
+  - type: dropdown
+    id: android-version
+    attributes:
+      label: Android TV / Google TV OS Version
+      options:
+        - Android 14+
+        - Android 13
+        - Android 12
+        - Android 11
+        - Android 10 (API 29)
+        - Other / Unsure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: active-services
+    attributes:
+      label: Active Permissions & Services
+      description: Select any RNA. TV system integrations that were enabled when the issue occurred.
+      options:
+        - label: Accessibility Service (Home/Back Button Interception)
+        - label: RNA TV Keyboard (System IME)
+        - label: Display Over Other Apps (AI Agent Overlay)
+        - label: Live Video Wallpaper
+        - label: Performance Mode Enabled
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What Happened?
+      description: Describe the bug clearly, including what you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this using a standard TV remote?
+      placeholder: |
+        1. Open Control Panel > ...
+        2. Press D-Pad Down on ...
+        3. App freezes / crashes
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Screenshots (Optional)
+      description: Paste any relevant `adb logcat` output or drag and drop photos/screenshots of your TV screen here.
