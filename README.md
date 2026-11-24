@@ -42,8 +42,8 @@ To install and configure **RNA. TV** on your Android TV or Google TV device, fol
    > **Note:** After installing SFTV, it is recommended to temporarily disable the Google Play Store (`Settings > Apps > See all apps > Google Play Store > Disable`). Otherwise, Google Play Protect may block the installation of the RNA. TV APK. Once RNA. TV is installed, you can re-enable the Google Play Store.
 2. On your **Android Phone / Tablet**, open the Google Play Store, search for **"Send Files to TV" (SFTV)**, and install the companion app.
 
-### Step 2: Transfer the `.rna` / APK File to Your TV
-1. Download the RNA. TV installation APK (`rna.apk`) or `.rna` bundle file on your phone from this repository's [Releases](https://github.com/frosty-sys/rnatv/releases) page.
+### Step 2: Transfer the APK File to Your TV
+1. Download the RNA. TV installation APK (`rna.apk`) on your phone from this repository's [Releases](https://github.com/frosty-sys/rnatv/releases) page.
 2. Open **Send Files to TV** on both your TV (select **Receive**) and your phone (select **Send**).
 3. Select the `rna.apk` file on your phone and choose your TV to transfer the file wirelessly over your local Wi-Fi network.
 
