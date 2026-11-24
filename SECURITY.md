@@ -30,7 +30,7 @@ Security updates and bug fixes are actively provided for the latest release bran
 
 If you discover a security issue affecting WebView isolation, `.rna` web bundles, local Wi-Fi controller pairing, or Accessibility/IME services, please report it privately using one of the following methods:
 
-1. **GitHub Private Vulnerability Reporting *(Recommended)*:** Navigate to the [**Security Advisories**](https://github.com) tab and click **"Report a vulnerability"** to submit a confidential report.
+1. **GitHub Private Vulnerability Reporting *(Recommended)*:** Navigate to the [**Security Advisories**](https://github.com/frosty-sys/rnatv/security/advisories) tab and click **"Report a vulnerability"** to submit a confidential report.
 2. **Direct Maintainer Contact:** Reach out directly to [`@frosty-sys`](https://github.com/frosty-sys) with details of the issue.
 
 ### 📋 What to Include in Your Report
