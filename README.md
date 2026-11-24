@@ -7,7 +7,7 @@
 *[```RNA. TV```](https://github.com/frosty-sys/rnatv/releases) is the ultimate Android TV & Google TV Launcher, Web Container & AI Ecosystem*
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/pgxor/com.vadhod.apkextractor?style=flat-square&label=release)](https://github.com/frosty-sys/rnatv/releases/latest)
+[![Latest release](<svg xmlns="http://www.w3.org/2000/svg" width="94" height="20" role="img" aria-label="release: v3.7.6"><title>release: v3.7.6</title><g shape-rendering="crispEdges"><rect width="49" height="20" fill="#555"/><rect x="49" width="45" height="20" fill="#007ec6"/></g><g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110"><text x="255" y="140" textLength="390" transform="scale(.1)">release</text><text x="705" y="140" textLength="350" transform="scale(.1)">v3.7.6</text></g></svg>)](https://github.com/frosty-sys/rnatv/releases/latest)
 [![Android 10+](https://img.shields.io/badge/Android-10%2B%20(API%2029)-3DDC84?style=flat-square&logo=android&logoColor=white)](#requirements)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-4285F4?style=flat-square&logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
