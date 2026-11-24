@@ -23,7 +23,7 @@
 ## 🌟 Key Features
 
 * **Ad-Free Google TV Launcher:** Clean, lightning-fast home screen with customizable single-row or two-row app docks, recent apps history, and instant app launching.
-* **Remote Button Remapper:** * Open **Remapper** from the Functions tab to quickly customize your remote buttons and assign single, double, triple and long presses to specific apps, AI, Recent Apps, Quick App Taskbar and much more!
+* **Remote Button Remapper:** Open **Remapper** from the Functions tab to quickly customize your remote buttons and assign single, double, triple and long presses to specific apps, AI, Recent Apps, Quick App Taskbar and much more!
 * **43+ Bundled 4K Wallpapers + Live Wallpapers:** Switch instantly between stunning 4K preset wallpapers or pick your own custom photos, along with native 4K Live Wallpaper support.
 * **Multi-User Offline Profiles:** Create separate profiles with custom avatars (28 offline preset avatars + local photo picker) and isolated or shared browser data.
 * **Integrated TV Web Browser:** Full-featured web browser with an on-screen D-Pad keyboard, full-screen mode, and one-tap conversion of websites into standalone TV apps.
