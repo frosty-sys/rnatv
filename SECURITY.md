@@ -1,14 +1,15 @@
-#### Security Policy
+# Security Policy
 
-#### 🛡️ Supported Versions
+## 🛡️ Supported Versions
 
-Security updates and bug fixes are actively provided for the latest release of **RNA. TV**: 
+Security updates and bug fixes are actively provided for the latest release of **RNA. TV**:
 
-VersionSupported
-**v3.7.x (Latest)**
-✅ Yes
-**< v3.7.0**
-❌ No
+| Version | Supported |
+| ------- | --------- |
+| `v3.7.x` (Latest) | ✅ Yes |
+| `< v3.7.0` | ❌ No |
+
+---
 
 #### 🔒 Security & Privacy Architecture
 
@@ -20,6 +21,8 @@ VersionSupported
 * **Secure In-App Updates:** The updater (Controls > Functions > Updates) fetches APKs over **HTTPS** from the official GitHub Releases repository, relying on Android's package installer to verify signing certificates.
 * **Sensitive Permissions:** Accessibility Service, Overlay (SYSTEM_ALERT_WINDOW), and IME permissions are used solely for Home/Back button interception, custom TV keyboard input, and on-screen AI agent overlays.
 
+---
+
 #### 🚨 Reporting a Vulnerability
 
 If you discover a security vulnerability in **RNA. TV** (such as an issue affecting WebView isolation, .rna web bundles, local Wi-Fi phone controller pairing, or Accessibility/IME services), **please do not open a public GitHub issue**. 
@@ -28,6 +31,8 @@ Instead, please report it privately using one of the following methods: 
 
 1. **GitHub Private Vulnerability Reporting:** Go to the [**Security**](https://github.com/frosty-sys/rnatv/security/advisories) tab of this repository and click **"Report a vulnerability"** to submit a private advisory.
 2. **Direct Contact:** Reach out directly to the repository maintainer (@frosty-sys) with details of the issue.
+   
+---
 
 #### What to Include in Your Report
 
