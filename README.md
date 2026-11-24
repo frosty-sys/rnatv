@@ -23,11 +23,11 @@
 ## 🌟 Key Features
 
 * **Ad-Free Google TV Launcher:** Clean, lightning-fast home screen with customizable single-row or two-row app docks, recent apps history, and instant app launching.
-* **Remote Button Remapper:** Remote button remapper to customize remote buttons and assign single, double, triple and long presses to specific apps, AI, Recent Apps and Quick App Taskbar.
-* **43+ Bundled 4K Wallpapers + Live Wallpapers:** Switch instantly between stunning 4K preset wallpapers or pick your own custom photos, along with native 4k Live Wallapaper support.
+* **Remote Button Remapper:** * Open **Remapper** from the Functions tab to quickly customize your remote buttons and assign single, double, triple and long presses to specific apps, AI, Recent Apps, Quick App Taskbar and much more!
+* **43+ Bundled 4K Wallpapers + Live Wallpapers:** Switch instantly between stunning 4K preset wallpapers or pick your own custom photos, along with native 4K Live Wallpaper support.
 * **Multi-User Offline Profiles:** Create separate profiles with custom avatars (28 offline preset avatars + local photo picker) and isolated or shared browser data.
 * **Integrated TV Web Browser:** Full-featured web browser with an on-screen D-Pad keyboard, full-screen mode, and one-tap conversion of websites into standalone TV apps.
-* **RNA. AI Assistant & Agentic Control:** Full-screen AI assistant with conversation history stored locally and autonomous capabilities (screenshots, D-Pad actions, app/website launching).
+* **RNA. AI Assistant & Agentic Control:** Full-screen AI assistant with 52+ free keyless AI models out of the box, local conversation history, and autonomous capabilities (screenshots, D-Pad actions, app/website launching).
 * **RNA. Controller & Gamepad Bridge:** Control your TV from your phone over local Wi-Fi with an M3 Expressive gamepad and remote featuring remapped physical Xbox/Android buttons.
 * **Performance Mode:** Instant toggle in the Control Panel that disables all animations for maximum speed on resource-constrained TV boxes.
 
