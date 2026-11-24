@@ -12,7 +12,7 @@ Please keep all discussions, issues, and code reviews respectful, constructive, 
 
 ## 🐛 Reporting Bugs
 
-Before opening a new issue, please search existing [Issues](https://github.com) to avoid duplicates. When submitting a bug report, please include:
+Before opening a new issue, please search existing [Issues](https://github.com/frosty-sys/rnatv/issues) to avoid duplicates. When submitting a bug report, please include:
 
 * **Device & OS Details:** TV model or streaming box (e.g., Chromecast with Google TV, Nvidia Shield, Mi Box, Sony Bravia) and Android TV version (Android 10+).
 * **App Version:** The exact release tag (e.g., `v3.7.6`) or commit hash.
@@ -43,7 +43,7 @@ We welcome ideas for new launcher widgets, remote remapping actions, `.rna` web 
 ### Local Setup
 1. **Fork & Clone** the repository:
    ```bash
-   git clone https://github.com<your-username>/rnatv.git
+   git clone https://github.com/frosty-sys/rnatv.git
    cd rnatv
    ```
 2. **Environment Configuration:** If your local build uses environment properties, copy `.env.example` to `.env` (never commit real secrets or keys).
