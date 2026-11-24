@@ -1,0 +1,41 @@
+name: 💡 Feature Request
+description: Suggest a new launcher feature, AI capability, remote action, or UI improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      options:
+        - Home Screen & Launcher Layout
+        - RNA. AI & Autonomous Agent
+        - Remote Button Remapper & Triggers
+        - TV Web Browser & .rna Web Bundles
+        - File Explorer & 4K / Live Wallpapers
+        - Phone Controller & Gamepad Bridge
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem or TV workflow does this solve?
+      description: Describe what is currently frustrating or missing on your TV.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution & D-Pad Navigation
+      description: How should this work using a standard 5-way TV D-Pad remote?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Additional Context or Mockups (Optional)
+      description: Add any screenshots, sketches, or performance notes for low-RAM TV boxes.
