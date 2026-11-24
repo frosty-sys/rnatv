@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">RNA.</string>
+    <string name="accessibility_service_label">RNA. TV Home Launcher Interceptor</string>
+    <string name="accessibility_service_description">Intercepts the Home button to open the ad-free RNA TV Launcher, and replaces Google Assistant (invoked by "Hey Google" or remote Mic) with RNA Assistant over any app.</string>
+</resources>

@@ -1,0 +1,6 @@
+{
+  "name": "RNA.",
+  "description": "Production-grade Android & RNA. TV hybrid web container runner, package installer, and Material 3 Expressive Tonal Spot TV Launcher.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
