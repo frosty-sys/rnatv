@@ -1,7 +1,5 @@
 package com.example.util
 
-import android.content.Context
-
-fun configureAppCheck(context: Context) {
+fun configureAppCheck(vararg args: Any?) {
     // Disabled for FOSS / F-Droid build
 }
