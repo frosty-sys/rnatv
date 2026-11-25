@@ -263,7 +263,7 @@ private class ProviderHttpException(
  * Central AI Router for RNA. TV, RNA AI App, EdVanced Voice Assistant, and Autonomous Screen Agent.
  *
  * CRITICAL GUARANTEES:
- * - Never uses any developer-bundled Gemini API key (`BuildConfig.GEMINI_API_KEY` or `Firebase.ai`).
+ * - Never uses any developer-bundled Gemini API key (`BuildConfig.GEMINI_API_KEY`).
  * - By default (cold start with 0 calls), prefers **Kilo Gateway** (`kilo`) models first because
  *   Kilo Gateway is fast and reliable out of the box, followed by OVHcloud and AI Horde backups.
  * - Maintains a **separate per-device & per-TV-profile adaptive reliability table** using Bayesian

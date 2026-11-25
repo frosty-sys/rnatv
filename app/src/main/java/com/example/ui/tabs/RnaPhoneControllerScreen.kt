@@ -165,7 +165,7 @@ fun RnaPhoneControllerModal(
     // Pairing 4-digit PIN & Optional Manual TV IP
     var pinInput by remember { mutableStateOf("") }
     var manualTvIp by remember {
-        mutableStateOf(prefs.getString("paired_tv_ip", "") ?: "")
+        mutableStateOf(RnaControllerNetworkBridge.getSavedTvIp(prefs).orEmpty())
     }
     var showManualIpField by remember { mutableStateOf(false) }
     var isConnecting by remember { mutableStateOf(false) }

@@ -1,0 +1,12 @@
+RNA. TV is a fast, open-source Android TV launcher, D-pad web browser, AI assistant, and local Wi-Fi phone remote designed for living-room screens.
+
+Key Features:
+
+- Custom Android TV Launcher: Clean, distraction-free home screen with customizable 1-row and 2-row favorites, All Apps drawer, multi-profile support, boot launch control, and instant app switching.
+- D-Pad Web Browser & Media Hub: Full-screen TV web browser with built-in ad and tracker blocking, spatial remote navigation, virtual cursor mode, bookmarks, and quick YouTube search with voice input.
+- Multi-Provider AI Assistant & Router: Built-in AI chat, EdVanced voice assistant, and smart TV search backed by free keyless open AI providers with adaptive per-device reliability routing, per-provider toggles, and optional user-supplied Gemini API key support over standard HTTPS.
+- Autonomous AI Screen Agent: Optional accessibility-assisted TV agent that helps navigate apps and complete multi-step tasks hands-free with a live on-screen status HUD.
+- Unified TV Keyboard: Custom Jetpack Compose D-pad keyboard available both inside RNA. TV and as a system-wide Android TV IME.
+- Local Wi-Fi Phone Remote: Pair your phone over your local network using a 4-digit pairing code or IP address for touchpad control, D-pad navigation, text entry, voice input, and quick shortcuts.
+- Control Panel & Diagnostics: Built-in 4K streaming internet speed test, network status, triggers and macros, and full device customization.
+- 100% Free & Open Source: Built with zero Google Play Services or proprietary Firebase dependencies.

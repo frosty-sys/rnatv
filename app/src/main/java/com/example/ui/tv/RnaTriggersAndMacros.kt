@@ -1,11 +1,16 @@
 package com.example.ui.tv
 
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.media.AudioManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -117,6 +122,7 @@ import kotlin.math.roundToInt
 
 const val PREF_KEY_TRIGGERS_MACROS_JSON = "rna_tv_triggers_macros_v1"
 const val KEY_OPEN_RNA_AT_BOOT = "control_open_rna_at_boot"
+private const val PREF_KEY_LAST_HANDLED_BOOT_COUNT = "rna_last_handled_boot_count_v1"
 
 enum class RnaTriggerType(val id: String, val label: String) {
     DEVICE_BOOT("DEVICE_BOOT", "When Device Turns On"),
@@ -136,11 +142,17 @@ enum class RnaTriggerActionType(
     val subtitle: String,
     val category: String
 ) {
-    WARM_RNA_BACKGROUND(
-        id = "WARM_RNA_BACKGROUND",
-        title = "Launch RNA. TV in Background (Pre-Warm)",
-        subtitle = "Silently warms RNA. TV without interrupting Live TV for zero-lag Home launch",
+    BOOT_WARM_RNA_TV(
+        id = "BOOT_WARM_RNA_TV",
+        title = "Open RNA. TV & Return to Previous App",
+        subtitle = "Opens RNA. TV on boot, then immediately reopens the last non-launcher app unless Open RNA TV at Boot is on",
         category = "System"
+    ),
+    OPEN_PREVIOUS_APP(
+        id = "OPEN_PREVIOUS_APP",
+        title = "Open Previous App",
+        subtitle = "Reopens the previously opened app if it is not the Android TV launcher",
+        category = "Navigation"
     ),
     SET_VOLUME_PERCENT(
         id = "SET_VOLUME_PERCENT",
@@ -211,6 +223,9 @@ enum class RnaTriggerActionType(
 
     companion object {
         fun fromId(id: String): RnaTriggerActionType {
+            if (id.equals("WARM_RNA_BACKGROUND", ignoreCase = true)) {
+                return BOOT_WARM_RNA_TV
+            }
             return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: RNA_HOME
         }
     }
@@ -289,8 +304,8 @@ object RnaTriggersStore {
             isBuiltIn = true,
             actions = listOf(
                 RnaTriggerActionItem(
-                    id = "default_boot_warm_bg",
-                    type = RnaTriggerActionType.WARM_RNA_BACKGROUND
+                    id = "default_boot_warm_rna",
+                    type = RnaTriggerActionType.BOOT_WARM_RNA_TV
                 )
             )
         ),
@@ -464,6 +479,82 @@ object RnaTriggersStore {
 object RnaTriggersExecutor {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile
+    private var hasHandledBootInProcess: Boolean = false
+    @Volatile
+    private var pendingBootExecution: Boolean = false
+
+    fun isBootExecutionPending(): Boolean = pendingBootExecution
+
+    fun handleDeviceBootOnce(context: Context, fromAccessibilityService: Boolean = false) {
+        val appCtx = context.applicationContext
+        val prefs = appCtx.getSharedPreferences(RnaHomeInterceptorService.PREFS_NAME, Context.MODE_PRIVATE)
+        val currentBootCount = runCatching {
+            Settings.Global.getInt(appCtx.contentResolver, Settings.Global.BOOT_COUNT, -1)
+        }.getOrDefault(-1)
+
+        if (hasHandledBootInProcess) return
+        if (currentBootCount > 0 && prefs.getInt(PREF_KEY_LAST_HANDLED_BOOT_COUNT, -1) == currentBootCount) {
+            hasHandledBootInProcess = true
+            pendingBootExecution = false
+            return
+        }
+
+        val canLaunchActivitiesInBg = fromAccessibilityService ||
+            RnaHomeInterceptorService.instance != null ||
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            runCatching { Settings.canDrawOverlays(appCtx) }.getOrDefault(false)
+
+        if (!canLaunchActivitiesInBg) {
+            if (!pendingBootExecution) {
+                pendingBootExecution = true
+                // Fallback if AccessibilityService is disabled on this device so non-UI triggers still run
+                mainHandler.postDelayed({
+                    if (pendingBootExecution && !hasHandledBootInProcess) {
+                        executeBootFlowNow(appCtx, prefs, currentBootCount)
+                    }
+                }, 5000L)
+            }
+            return
+        }
+
+        executeBootFlowNow(appCtx, prefs, currentBootCount)
+    }
+
+    private fun executeBootFlowNow(
+        appCtx: Context,
+        prefs: SharedPreferences,
+        currentBootCount: Int
+    ) {
+        if (hasHandledBootInProcess) return
+        hasHandledBootInProcess = true
+        pendingBootExecution = false
+        if (currentBootCount > 0) {
+            prefs.edit().putInt(PREF_KEY_LAST_HANDLED_BOOT_COUNT, currentBootCount).commit()
+        }
+
+        val bootRules = RnaTriggersStore.loadRules(prefs).filter {
+            it.enabled && it.type == RnaTriggerType.DEVICE_BOOT
+        }
+        val handledByBootRule = bootRules.any { rule ->
+            rule.actions.any {
+                it.type == RnaTriggerActionType.BOOT_WARM_RNA_TV ||
+                    it.type == RnaTriggerActionType.RNA_HOME
+            }
+        }
+
+        bootRules.forEach { rule ->
+            if (rule.actions.isNotEmpty()) {
+                executeRuleActions(appCtx, rule, isBootTrigger = true)
+            }
+        }
+
+        if (!handledByBootRule) {
+            scope.launch {
+                performBootWarmupRnaTv(appCtx, isBootTrigger = true)
+            }
+        }
+    }
 
     fun executeTriggersForType(context: Context, triggerType: RnaTriggerType) {
         val appCtx = context.applicationContext
@@ -471,7 +562,7 @@ object RnaTriggersExecutor {
         val matching = RnaTriggersStore.loadRules(prefs).filter { it.enabled && it.type == triggerType }
         matching.forEach { rule ->
             if (rule.actions.isNotEmpty()) {
-                executeRuleActions(appCtx, rule)
+                executeRuleActions(appCtx, rule, isBootTrigger = triggerType == RnaTriggerType.DEVICE_BOOT)
             }
         }
     }
@@ -487,12 +578,16 @@ object RnaTriggersExecutor {
         }
         matching.forEach { rule ->
             if (rule.actions.isNotEmpty()) {
-                executeRuleActions(appCtx, rule)
+                executeRuleActions(appCtx, rule, isBootTrigger = false)
             }
         }
     }
 
-    fun executeRuleActions(context: Context, rule: RnaTriggerRule) {
+    fun executeRuleActions(
+        context: Context,
+        rule: RnaTriggerRule,
+        isBootTrigger: Boolean = false
+    ) {
         val appCtx = context.applicationContext
         val prefs = appCtx.getSharedPreferences(RnaHomeInterceptorService.PREFS_NAME, Context.MODE_PRIVATE)
         scope.launch {
@@ -501,8 +596,13 @@ object RnaTriggersExecutor {
                     RnaTriggerActionType.DELAY_MS -> {
                         delay(action.delayMs.coerceIn(100L, 30_000L))
                     }
-                    RnaTriggerActionType.WARM_RNA_BACKGROUND -> {
-                        performSilentBackgroundWarmup(appCtx)
+                    RnaTriggerActionType.BOOT_WARM_RNA_TV -> {
+                        performBootWarmupRnaTv(appCtx, isBootTrigger = isBootTrigger)
+                        delay(250L)
+                    }
+                    RnaTriggerActionType.OPEN_PREVIOUS_APP -> {
+                        openPreviousNonLauncherApp(appCtx)
+                        delay(250L)
                     }
                     RnaTriggerActionType.SET_VOLUME_PERCENT -> {
                         mainHandler.post {
@@ -608,29 +708,193 @@ object RnaTriggersExecutor {
     }
 
     /**
-     * Silently warms RNA. TV's process, profile persistence, AI router state, and package metadata
-     * in the background without opening any Activity or disturbing Live TV.
+     * Opens RNA. TV at boot to warm the Activity and launcher state:
+     * - When "Open RNA TV at Boot" is enabled: opens RNA. TV directly and stays on RNA. TV.
+     * - When "Open RNA TV at Boot" is disabled (default): opens RNA. TV and immediately reopens
+     *   the last opened app right at that instant if it is not the Android TV launcher.
      */
-    fun performSilentBackgroundWarmup(context: Context) {
+    suspend fun performBootWarmupRnaTv(context: Context, isBootTrigger: Boolean = false) {
         val appCtx = context.applicationContext
+        val prefs = appCtx.getSharedPreferences(RnaHomeInterceptorService.PREFS_NAME, Context.MODE_PRIVATE)
+        val openRnaAtBoot = prefs.getBoolean(KEY_OPEN_RNA_AT_BOOT, false)
+
         runCatching {
             TvProfilePersistenceStore.ensureProfilesSyncedOnBootOrUpdate(appCtx)
         }
-        runCatching {
-            val prefs = appCtx.getSharedPreferences(RnaHomeInterceptorService.PREFS_NAME, Context.MODE_PRIVATE)
-            loadTvProfiles(prefs)
-            loadRemappedKeyBindings(prefs)
-            RnaTriggersStore.loadRules(prefs)
-            RnaFreeAiRouter.getAllModelsWithRuntimeState(appCtx)
-        }
-        runCatching {
-            // Prime PackageManager launcher query cache so RNA. TV opens instantaneously when Home is pressed
-            val pm = appCtx.packageManager
-            val leanback = Intent(Intent.ACTION_MAIN, null).apply {
-                addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+
+        if (openRnaAtBoot) {
+            mainHandler.post {
+                val service = RnaHomeInterceptorService.instance
+                if (service != null) {
+                    service.launchRnaTvForBootWarmup(returnToPrevious = false, returnPackage = "")
+                } else {
+                    launchRnaTvForeground(appCtx)
+                }
             }
-            pm.queryIntentActivities(leanback, 0)
+            return
         }
+
+        var previousNonLauncherPkg = resolvePreviousNonLauncherPackage(
+            context = appCtx,
+            allowFallbackWhenInRna = !isBootTrigger
+        )
+        if (isBootTrigger && previousNonLauncherPkg.isBlank()) {
+            val liveRoot = runCatching {
+                RnaHomeInterceptorService.instance?.rootInActiveWindow?.packageName?.toString().orEmpty()
+            }.getOrDefault("")
+            if (!RnaHomeInterceptorService.isStockTvLauncherPackage(liveRoot)) {
+                // Give OEM Live TV / HDMI input a brief moment to attach its window right after BOOT_COMPLETED
+                delay(1200L)
+                previousNonLauncherPkg = resolvePreviousNonLauncherPackage(
+                    context = appCtx,
+                    allowFallbackWhenInRna = false
+                )
+            }
+        }
+        val shouldReturnToPrevious = previousNonLauncherPkg.isNotBlank() &&
+            RnaHomeInterceptorService.isEligiblePreviousAppPackage(appCtx, previousNonLauncherPkg)
+
+        mainHandler.post {
+            val service = RnaHomeInterceptorService.instance
+            if (service != null) {
+                service.launchRnaTvForBootWarmup(
+                    returnToPrevious = shouldReturnToPrevious,
+                    returnPackage = previousNonLauncherPkg
+                )
+            } else {
+                launchRnaTvForBootWarmupFallback(
+                    context = appCtx,
+                    returnToPrevious = shouldReturnToPrevious,
+                    returnPackage = previousNonLauncherPkg
+                )
+            }
+        }
+    }
+
+    fun openPreviousNonLauncherApp(context: Context) {
+        val appCtx = context.applicationContext
+        val previousPkg = resolvePreviousNonLauncherPackage(
+            context = appCtx,
+            allowFallbackWhenInRna = true
+        )
+        if (!RnaHomeInterceptorService.isEligiblePreviousAppPackage(appCtx, previousPkg)) return
+        mainHandler.post {
+            val launchedByService = RnaHomeInterceptorService.instance?.launchPreviousAppFromService(previousPkg) == true
+            if (!launchedByService) {
+                val launchedDirect = launchPreviousAppFromContext(appCtx, previousPkg)
+                if (!launchedDirect) {
+                    MainActivity.activeInstance?.moveTaskToBack(true)
+                }
+            }
+        }
+    }
+
+    fun completeBootWarmupReturnToPrevious(activity: MainActivity, targetPackage: String) {
+        if (!RnaHomeInterceptorService.isEligiblePreviousAppPackage(activity, targetPackage)) return
+        val launchedByService = RnaHomeInterceptorService.instance?.launchPreviousAppFromService(targetPackage) == true
+        if (launchedByService) return
+        val launchedDirect = launchPreviousAppFromContext(activity, targetPackage)
+        if (!launchedDirect) {
+            runCatching { activity.moveTaskToBack(true) }
+        }
+    }
+
+    private fun resolvePreviousNonLauncherPackage(
+        context: Context,
+        allowFallbackWhenInRna: Boolean
+    ): String {
+        val service = RnaHomeInterceptorService.instance
+        if (service != null) {
+            val fromService = service.getCurrentOrLastNonLauncherPackage(
+                allowFallbackWhenInRna = allowFallbackWhenInRna
+            )
+            if (fromService.isNotBlank()) return fromService
+            // If Accessibility explicitly saw the stock Android TV launcher active right now, never reopen it
+            val liveRoot = runCatching { service.rootInActiveWindow?.packageName?.toString().orEmpty() }.getOrDefault("")
+            if (RnaHomeInterceptorService.isStockTvLauncherPackage(liveRoot)) return ""
+        }
+
+        // UsageStatsManager fallback when Accessibility hasn't observed a window transition yet
+        return resolveLatestUsageStatsNonLauncherPackage(context)
+    }
+
+    private fun resolveLatestUsageStatsNonLauncherPackage(context: Context): String {
+        return runCatching {
+            val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return ""
+            val now = System.currentTimeMillis()
+            val events = usm.queryEvents(now - 90_000L, now)
+            val event = UsageEvents.Event()
+            var latestRelevantPkg = ""
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                val isForegroundEvent = event.eventType == UsageEvents.Event.ACTIVITY_RESUMED ||
+                    event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND
+                if (!isForegroundEvent) continue
+                val pkg = event.packageName.orEmpty()
+                if (pkg.isBlank() || pkg == context.packageName || pkg == "android" || pkg == "com.android.systemui") {
+                    continue
+                }
+                latestRelevantPkg = pkg
+            }
+            if (RnaHomeInterceptorService.isEligiblePreviousAppPackage(context, latestRelevantPkg)) {
+                latestRelevantPkg
+            } else {
+                ""
+            }
+        }.getOrDefault("")
+    }
+
+    private fun launchPreviousAppFromContext(context: Context, targetPkg: String): Boolean {
+        if (!RnaHomeInterceptorService.isEligiblePreviousAppPackage(context, targetPkg)) return false
+        return runCatching {
+            val pm = context.packageManager
+            val intent = pm.getLeanbackLaunchIntentForPackage(targetPkg)
+                ?: pm.getLaunchIntentForPackage(targetPkg)
+                ?: run {
+                    val mainMatches = pm.queryIntentActivities(
+                        Intent(Intent.ACTION_MAIN).setPackage(targetPkg),
+                        0
+                    )
+                    val activityInfo = mainMatches.firstOrNull { it.activityInfo?.exported == true }?.activityInfo
+                    if (activityInfo != null) {
+                        Intent(Intent.ACTION_MAIN).apply {
+                            component = ComponentName(activityInfo.packageName, activityInfo.name)
+                        }
+                    } else {
+                        null
+                    }
+                }
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                context.startActivity(intent)
+                true
+            } else {
+                false
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun launchRnaTvForBootWarmupFallback(
+        context: Context,
+        returnToPrevious: Boolean,
+        returnPackage: String
+    ) {
+        val appCtx = context.applicationContext
+        val intent = Intent(appCtx, MainActivity::class.java).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION
+            )
+            putExtra(MainActivity.EXTRA_OPEN_TV_LAUNCHER, true)
+            putExtra(MainActivity.EXTRA_RESET_TO_HOME_TAB, true)
+            putExtra(MainActivity.EXTRA_BOOT_WARMUP_RETURN_TO_PREVIOUS, returnToPrevious)
+            if (returnToPrevious && returnPackage.isNotBlank()) {
+                putExtra(MainActivity.EXTRA_BOOT_WARMUP_RETURN_PACKAGE, returnPackage)
+            }
+        }
+        runCatching { appCtx.startActivity(intent) }
     }
 
     fun launchRnaTvForeground(context: Context) {
@@ -644,6 +908,7 @@ object RnaTriggersExecutor {
             )
             putExtra(MainActivity.EXTRA_OPEN_TV_LAUNCHER, true)
             putExtra(MainActivity.EXTRA_RESET_TO_HOME_TAB, true)
+            putExtra(MainActivity.EXTRA_BOOT_WARMUP_RETURN_TO_PREVIOUS, false)
         }
         runCatching { appCtx.startActivity(intent) }
     }
@@ -1488,7 +1753,8 @@ private fun TriggerActionSequenceCard(
         label = "trigger_action_card_scale"
     )
     val accent = when (action.type) {
-        RnaTriggerActionType.WARM_RNA_BACKGROUND -> EmeraldSuccess
+        RnaTriggerActionType.BOOT_WARM_RNA_TV -> EmeraldSuccess
+        RnaTriggerActionType.OPEN_PREVIOUS_APP -> CyanPrimary
         RnaTriggerActionType.SET_VOLUME_PERCENT -> AmberAccent
         RnaTriggerActionType.OPEN_APP -> VioletSecondary
         RnaTriggerActionType.DELAY_MS -> Color(0xFF38BDF8)

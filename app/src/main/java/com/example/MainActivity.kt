@@ -7,6 +7,9 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.KeyEvent
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -105,6 +108,7 @@ import com.example.ui.wizard.AppCreationWizardContent
 import com.example.ui.wizard.AppCreationWizardDialog
 import com.example.util.configureAppCheck
 import java.io.File
+import java.lang.ref.WeakReference
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -113,14 +117,28 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN_TV_LAUNCHER = "extra_open_tv_launcher"
         const val EXTRA_OPEN_TV_BROWSER_URL = "extra_open_tv_browser_url"
         const val EXTRA_RESET_TO_HOME_TAB = "extra_reset_to_home_tab"
+        const val EXTRA_BOOT_WARMUP_RETURN_TO_PREVIOUS = "extra_boot_warmup_return_to_previous"
+        const val EXTRA_BOOT_WARMUP_RETURN_PACKAGE = "extra_boot_warmup_return_package"
 
         @Volatile
         internal var hasShownInitialWallpaperSplashInProcess: Boolean = false
+
+        @Volatile
+        private var activeInstanceRef: WeakReference<MainActivity>? = null
+
+        val activeInstance: MainActivity?
+            get() = activeInstanceRef?.get()?.takeIf { !it.isFinishing && !it.isDestroyed }
     }
 
     private val viewModel: MainViewModel by viewModels()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingBootWarmupReturnRunnable: Runnable? = null
+    private var skipInitialSplashForBootWarmup: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        activeInstanceRef = WeakReference(this)
+        skipInitialSplashForBootWarmup =
+            intent?.getBooleanExtra(EXTRA_BOOT_WARMUP_RETURN_TO_PREVIOUS, false) == true
         TvProfilePersistenceStore.ensureProfilesSyncedOnBootOrUpdate(this)
         configureAndroidSplashScreenApi()
         super.onCreate(savedInstanceState)
@@ -137,6 +155,7 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme(darkTheme = isDarkTheme) {
                 MainAppScreen(
                     viewModel = viewModel,
+                    skipInitialSplash = skipInitialSplashForBootWarmup,
                     onLaunchApp = { app ->
                         launchAppContainer(app)
                     },
@@ -146,6 +165,21 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onDestroy() {
+        cancelPendingBootWarmupReturn()
+        if (activeInstanceRef?.get() === this) {
+            activeInstanceRef = null
+        }
+        super.onDestroy()
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (pendingBootWarmupReturnRunnable != null && event.action == KeyEvent.ACTION_DOWN) {
+            cancelPendingBootWarmupReturn()
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     /**
@@ -160,7 +194,7 @@ class MainActivity : ComponentActivity() {
                 val splashEnabled = prefs.getBoolean(KEY_SPLASH_SCREEN_ENABLED, true)
                 val perfMode = prefs.getBoolean("performance_mode_enabled", false)
                 splashScreen.setOnExitAnimationListener { splashScreenView ->
-                    if (!splashEnabled || perfMode) {
+                    if (!splashEnabled || perfMode || skipInitialSplashForBootWarmup) {
                         splashScreenView.remove()
                     } else {
                         val fadeOut = ObjectAnimator.ofFloat(splashScreenView, View.ALPHA, 1f, 0f).apply {
@@ -184,8 +218,44 @@ class MainActivity : ComponentActivity() {
         handleIncomingIntent(intent)
     }
 
+    private fun cancelPendingBootWarmupReturn() {
+        pendingBootWarmupReturnRunnable?.let { mainHandler.removeCallbacks(it) }
+        pendingBootWarmupReturnRunnable = null
+    }
+
+    private fun scheduleBootWarmupReturn(targetPkg: String) {
+        cancelPendingBootWarmupReturn()
+        val prefs = getSharedPreferences(RnaHomeInterceptorService.PREFS_NAME, MODE_PRIVATE)
+        if (!prefs.getBoolean("tv_first_run_setup_completed_v1", false)) return
+        if (!RnaHomeInterceptorService.isEligiblePreviousAppPackage(this, targetPkg)) return
+
+        val runnable = Runnable {
+            pendingBootWarmupReturnRunnable = null
+            if (!isFinishing && !isDestroyed) {
+                com.example.ui.tv.RnaTriggersExecutor.completeBootWarmupReturnToPrevious(
+                    activity = this@MainActivity,
+                    targetPackage = targetPkg
+                )
+            }
+        }
+        pendingBootWarmupReturnRunnable = runnable
+        window.decorView.post {
+            if (pendingBootWarmupReturnRunnable === runnable) {
+                runnable.run()
+            }
+        }
+    }
+
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
+        val isBootWarmupReturn = intent.getBooleanExtra(EXTRA_BOOT_WARMUP_RETURN_TO_PREVIOUS, false)
+        if (isBootWarmupReturn) {
+            viewModel.setTvLauncherMode(true)
+            val returnPkg = intent.getStringExtra(EXTRA_BOOT_WARMUP_RETURN_PACKAGE).orEmpty()
+            scheduleBootWarmupReturn(returnPkg)
+        } else {
+            cancelPendingBootWarmupReturn()
+        }
         val browserUrl = intent.getStringExtra(EXTRA_OPEN_TV_BROWSER_URL)
         if (!browserUrl.isNullOrBlank()) {
             getSharedPreferences(RnaHomeInterceptorService.PREFS_NAME, MODE_PRIVATE)
@@ -241,6 +311,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainAppScreen(
     viewModel: MainViewModel,
+    skipInitialSplash: Boolean = false,
     onLaunchApp: (RnaApp) -> Unit,
     onLaunchDirectUrl: (String, String) -> Unit
 ) {
@@ -264,8 +335,8 @@ fun MainAppScreen(
     // Android Splash Screen API Component State: displays Main profile's wallpaper during initial app loading
     var showInitialWallpaperSplash by remember {
         val splashEnabled = prefs.getBoolean(KEY_SPLASH_SCREEN_ENABLED, true)
-        val shouldShow = splashEnabled && !MainActivity.hasShownInitialWallpaperSplashInProcess
-        if (shouldShow) {
+        val shouldShow = splashEnabled && !skipInitialSplash && !MainActivity.hasShownInitialWallpaperSplashInProcess
+        if (shouldShow || skipInitialSplash) {
             MainActivity.hasShownInitialWallpaperSplashInProcess = true
         }
         mutableStateOf(shouldShow)

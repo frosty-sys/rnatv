@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.media.AudioManager
+import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -281,25 +282,55 @@ object RnaControllerNetworkBridge {
     private var isServerRunning = false
     private var tcpServerSocket: ServerSocket? = null
     private var udpServerSocket: DatagramSocket? = null
+    private var multicastLock: WifiManager.MulticastLock? = null
 
     private val previousSlotFrames = ConcurrentHashMap<Int, XboxGamepadFrame>()
     private val lastAnalogNavTimestamp = ConcurrentHashMap<Int, Long>()
+
+    private fun extractValidIpv4Octet(ip: String?): Int? {
+        if (ip.isNullOrBlank() || ip == "127.0.0.1" || ip == "Detecting...") return null
+        return ip.substringAfterLast(".", "").toIntOrNull()?.takeIf { it in 1..254 }
+    }
+
+    private fun generatePinForSlot(slot: Int, tvIp: String? = _tvLocalIp.value, avoidPin: String? = null): String {
+        val octet = extractValidIpv4Octet(tvIp) ?: extractValidIpv4Octet(detectBestLocalIpv4())
+        val prefixRange = if (slot == 2) 5..9 else 1..4
+        if (octet != null) {
+            val candidates = prefixRange.map { p -> String.format(java.util.Locale.US, "%d%03d", p, octet) }
+            val filtered = candidates.filter { it != avoidPin }
+            return (if (filtered.isNotEmpty()) filtered else candidates).random()
+        }
+        return generateRandom4DigitPin()
+    }
 
     private fun generateRandom4DigitPin(): String {
         val n = Random.nextInt(1000, 9999)
         return n.toString()
     }
 
+    private fun syncPinsWithDetectedTvIp(ip: String) {
+        val octet = extractValidIpv4Octet(ip) ?: return
+        val expectedSuffix = String.format(java.util.Locale.US, "%03d", octet)
+        if (!_pinCodeSlot1.value.endsWith(expectedSuffix) || _pinCodeSlot1.value.firstOrNull() !in '1'..'4') {
+            _pinCodeSlot1.value = generatePinForSlot(slot = 1, tvIp = ip)
+        }
+        if (!_pinCodeSlot2.value.endsWith(expectedSuffix) || _pinCodeSlot2.value.firstOrNull() !in '5'..'9') {
+            _pinCodeSlot2.value = generatePinForSlot(slot = 2, tvIp = ip)
+        }
+    }
+
     fun regeneratePinSlot1() {
-        _pinCodeSlot1.value = generateRandom4DigitPin()
+        val ip = refreshLocalIpAddress()
+        _pinCodeSlot1.value = generatePinForSlot(slot = 1, tvIp = ip, avoidPin = _pinCodeSlot1.value)
     }
 
     fun regeneratePinForSlot(context: Context, slot: Int) {
+        val ip = refreshLocalIpAddress()
         if (slot == 2) {
-            _pinCodeSlot2.value = generateRandom4DigitPin()
+            _pinCodeSlot2.value = generatePinForSlot(slot = 2, tvIp = ip, avoidPin = _pinCodeSlot2.value)
             _isSlot2PairingOpen.value = true
         } else {
-            _pinCodeSlot1.value = generateRandom4DigitPin()
+            _pinCodeSlot1.value = generatePinForSlot(slot = 1, tvIp = ip, avoidPin = _pinCodeSlot1.value)
         }
     }
 
@@ -308,7 +339,8 @@ object RnaControllerNetworkBridge {
     }
 
     fun openSlot2PairingWithNewPin() {
-        _pinCodeSlot2.value = generateRandom4DigitPin()
+        val ip = refreshLocalIpAddress()
+        _pinCodeSlot2.value = generatePinForSlot(slot = 2, tvIp = ip, avoidPin = _pinCodeSlot2.value)
         _isSlot2PairingOpen.value = true
     }
 
@@ -321,29 +353,59 @@ object RnaControllerNetworkBridge {
     fun refreshLocalIpAddress(): String {
         val ip = detectBestLocalIpv4()
         _tvLocalIp.value = ip
+        syncPinsWithDetectedTvIp(ip)
         return ip
+    }
+
+    private fun isIgnoredCellularOrTunnelInterface(name: String): Boolean {
+        val lower = name.lowercase(java.util.Locale.US)
+        return lower.startsWith("rmnet") ||
+            lower.startsWith("v4-rmnet") ||
+            lower.startsWith("ccmni") ||
+            lower.startsWith("pdp") ||
+            lower.startsWith("seth_lte") ||
+            lower.startsWith("tun") ||
+            lower.startsWith("ppp") ||
+            lower.startsWith("dummy")
+    }
+
+    private fun isPreferredLanInterface(name: String): Boolean {
+        val lower = name.lowercase(java.util.Locale.US)
+        return lower.startsWith("wlan") ||
+            lower.startsWith("eth") ||
+            lower.startsWith("en") ||
+            lower.startsWith("ap") ||
+            lower.startsWith("swlan") ||
+            lower.startsWith("softap") ||
+            lower.startsWith("rndis") ||
+            lower.startsWith("usb")
     }
 
     private fun detectBestLocalIpv4(): String {
         return try {
-            val candidates = mutableListOf<String>()
+            val preferred = mutableListOf<String>()
+            val secondary = mutableListOf<String>()
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces != null && interfaces.hasMoreElements()) {
                 val nif = interfaces.nextElement()
                 if (!nif.isUp || nif.isLoopback) continue
+                val ifName = nif.name.orEmpty()
+                if (isIgnoredCellularOrTunnelInterface(ifName)) continue
+                val isLan = isPreferredLanInterface(ifName)
                 val addrs = nif.inetAddresses
                 while (addrs.hasMoreElements()) {
                     val addr = addrs.nextElement()
                     if (!addr.isLoopbackAddress && addr is Inet4Address) {
                         val host = addr.hostAddress ?: continue
                         if (host.startsWith("192.168.") || host.startsWith("10.") || host.startsWith("172.")) {
-                            candidates.add(host)
+                            if (isLan) preferred.add(host) else secondary.add(host)
                         }
                     }
                 }
             }
-            candidates.firstOrNull { it.startsWith("192.168.") }
-                ?: candidates.firstOrNull()
+            val all = preferred + secondary
+            all.firstOrNull { it.startsWith("192.168.") }
+                ?: all.firstOrNull()
                 ?: "127.0.0.1"
         } catch (_: Exception) {
             "127.0.0.1"
@@ -393,16 +455,29 @@ object RnaControllerNetworkBridge {
      * Starts the TV-side TCP & UDP Controller Server if not already running.
      */
     fun ensureTvControllerServerStarted(context: Context) {
-        appContextRef = WeakReference(context.applicationContext)
+        val appCtx = context.applicationContext
+        appContextRef = WeakReference(appCtx)
         refreshLocalIpAddress()
         if (isServerRunning) return
         isServerRunning = true
+
+        // Acquire Wi-Fi multicast lock so Android TV chipsets don't filter UDP discovery broadcasts
+        runCatching {
+            val wifiMgr = appCtx.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            if (wifiMgr != null && multicastLock == null) {
+                multicastLock = wifiMgr.createMulticastLock("rna_tv_controller_discovery").apply {
+                    setReferenceCounted(false)
+                    acquire()
+                }
+            }
+        }
 
         // 1. Start UDP Discovery & Zero-Lag Gamepad Input Listener
         scope.launch {
             try {
                 val socket = DatagramSocket(null).apply {
                     reuseAddress = true
+                    broadcast = true
                     bind(InetSocketAddress(UDP_PORT))
                 }
                 udpServerSocket = socket
@@ -449,7 +524,11 @@ object RnaControllerNetworkBridge {
             msg.startsWith("RNA_DISCOVER") -> {
                 // Reply immediately so the phone discovers the TV IP automatically on Wi-Fi or Hotspot
                 val localIp = refreshLocalIpAddress()
-                val reply = "RNA_TV_HERE|$localIp|$TCP_PORT|$UDP_PORT"
+                val requestedPin = msg.substringAfter("|", "").trim()
+                val pinMatches = requestedPin.length == 4 && (
+                    requestedPin == _pinCodeSlot1.value || requestedPin == _pinCodeSlot2.value
+                )
+                val reply = "RNA_TV_HERE|$localIp|$TCP_PORT|$UDP_PORT|${if (pinMatches) "1" else "0"}"
                 val replyBytes = reply.toByteArray(Charsets.UTF_8)
                 val outPacket = DatagramPacket(replyBytes, replyBytes.size, packet.address, packet.port)
                 runCatching { socket.send(outPacket) }
@@ -1529,56 +1608,150 @@ object RnaControllerNetworkBridge {
         prefs.edit().putString(PREF_PHONE_SHORTCUT_APPS_JSON, arr.toString()).apply()
     }
 
-    private fun getAllLocalSubnetPrefixes(): List<String> {
-        val prefixes = mutableSetOf<String>()
+    private data class LanNetworkTopology(
+        val activeSubnets: List<String>,
+        val fallbackSubnets: List<String>,
+        val broadcastTargets: List<String>,
+        val ownLocalIps: Set<String>
+    )
+
+    private fun inspectPhoneLanTopology(): LanNetworkTopology {
+        val preferredSubnets = linkedSetOf<String>()
+        val secondarySubnets = linkedSetOf<String>()
+        val broadcasts = linkedSetOf<String>()
+        val ownIps = linkedSetOf<String>()
         try {
             val interfaces = NetworkInterface.getNetworkInterfaces()
             while (interfaces != null && interfaces.hasMoreElements()) {
                 val nif = interfaces.nextElement()
                 if (!nif.isUp || nif.isLoopback) continue
-                val addrs = nif.inetAddresses
-                while (addrs.hasMoreElements()) {
-                    val addr = addrs.nextElement()
-                    if (!addr.isLoopbackAddress && addr is Inet4Address) {
+                val ifName = nif.name.orEmpty()
+                if (isIgnoredCellularOrTunnelInterface(ifName)) continue
+                val isLan = isPreferredLanInterface(ifName)
+                for (ifAddr in nif.interfaceAddresses) {
+                    val addr = ifAddr.address
+                    if (addr is Inet4Address && !addr.isLoopbackAddress) {
                         val host = addr.hostAddress ?: continue
+                        ownIps.add(host)
                         val prefix = host.substringBeforeLast(".", "")
                         if (prefix.isNotEmpty() && prefix != "127.0.0") {
-                            prefixes.add(prefix)
+                            if (isLan) preferredSubnets.add(prefix) else secondarySubnets.add(prefix)
+                            broadcasts.add("$prefix.255")
+                        }
+                        val bcast = ifAddr.broadcast?.hostAddress
+                        if (!bcast.isNullOrBlank() && bcast != "0.0.0.0") {
+                            broadcasts.add(bcast)
                         }
                     }
                 }
             }
-        } catch (_: Exception) {}
-        // Also include standard Android Wi-Fi Hotspot, Wi-Fi Direct, and home router subnets
-        prefixes.addAll(
-            listOf(
-                "192.168.43",
-                "192.168.49",
-                "192.168.1",
-                "192.168.0",
-                "192.168.2",
-                "10.0.0",
-                "172.20.10"
-            )
+        } catch (_: Exception) {
+        }
+
+        val activeSubnets = (preferredSubnets + secondarySubnets).toList()
+        val fallbackSubnets = listOf(
+            "192.168.43",
+            "192.168.49",
+            "192.168.1",
+            "192.168.0",
+            "192.168.2",
+            "10.0.0",
+            "172.20.10"
+        ).filter { it !in activeSubnets }
+
+        broadcasts.add("255.255.255.255")
+        fallbackSubnets.forEach { broadcasts.add("$it.255") }
+
+        return LanNetworkTopology(
+            activeSubnets = activeSubnets,
+            fallbackSubnets = fallbackSubnets,
+            broadcastTargets = broadcasts.toList(),
+            ownLocalIps = ownIps
         )
-        return prefixes.toList()
+    }
+
+    private fun discoverTvIpsViaUdpBroadcast(
+        topology: LanNetworkTopology,
+        pinHint: String?
+    ): List<String> {
+        val pinMatchedIps = linkedSetOf<String>()
+        val otherIps = linkedSetOf<String>()
+        try {
+            DatagramSocket().use { sock ->
+                sock.broadcast = true
+                sock.soTimeout = 350
+                val query = if (!pinHint.isNullOrBlank()) "RNA_DISCOVER|${pinHint.trim()}" else "RNA_DISCOVER"
+                val payload = query.toByteArray(Charsets.UTF_8)
+
+                fun sendBurst() {
+                    for (bcast in topology.broadcastTargets) {
+                        runCatching {
+                            val pkt = DatagramPacket(payload, payload.size, InetAddress.getByName(bcast), UDP_PORT)
+                            sock.send(pkt)
+                        }
+                    }
+                }
+
+                sendBurst()
+                val deadline = SystemClock.elapsedRealtime() + 950L
+                var sentSecondBurst = false
+                val buf = ByteArray(512)
+                while (SystemClock.elapsedRealtime() < deadline) {
+                    val remaining = (deadline - SystemClock.elapsedRealtime()).toInt().coerceIn(50, 350)
+                    sock.soTimeout = remaining
+                    try {
+                        val recv = DatagramPacket(buf, buf.size)
+                        sock.receive(recv)
+                        val text = String(recv.data, 0, recv.length, Charsets.UTF_8).trim()
+                        if (text.startsWith("RNA_TV_HERE|")) {
+                            val parts = text.split("|")
+                            val discoveredIp = recv.address?.hostAddress?.takeIf {
+                                it.isNotBlank() && it != "127.0.0.1" && it !in topology.ownLocalIps
+                            } ?: parts.getOrNull(1)?.takeIf {
+                                it.isNotBlank() && it != "127.0.0.1" && it !in topology.ownLocalIps
+                            }
+                            if (!discoveredIp.isNullOrBlank()) {
+                                val isPinMatch = parts.getOrNull(4) == "1"
+                                if (isPinMatch) {
+                                    pinMatchedIps.add(discoveredIp)
+                                    // Immediate hit for the exact TV showing this PIN!
+                                    break
+                                } else {
+                                    otherIps.add(discoveredIp)
+                                }
+                            }
+                        }
+                    } catch (_: java.net.SocketTimeoutException) {
+                        if (!sentSecondBurst) {
+                            sentSecondBurst = true
+                            sendBurst()
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+        return (pinMatchedIps + otherIps).toList()
     }
 
     /**
-     * Discovers the RNA TV on the same Wi-Fi network, phone hotspot, or local loopback.
-     * When a 4-digit PIN is provided (`pinHint`), the last 3 digits encode the TV's exact IP host octet
-     * (`001..254`), allowing direct connection to `<subnet>.<octet>` even when routers block UDP broadcasts!
+     * Discovers the RNA TV on the same Wi-Fi network or mobile hotspot.
+     * Prioritizes Pin-Encoded direct IP octet -> saved TV IP -> multi-burst UDP broadcast ->
+     * parallel Wi-Fi/Hotspot subnet scan, strictly avoiding phone loopback self-connection.
      */
     suspend fun discoverTvIpOnNetwork(savedIp: String?, pinHint: String? = null): String? = withContext(Dispatchers.IO) {
-        val allSubnets = getAllLocalSubnetPrefixes()
+        val topology = inspectPhoneLanTopology()
+        val allSubnets = topology.activeSubnets + topology.fallbackSubnets
 
-        // 0. If the user entered a 4-digit PIN, extract the encoded last IP octet (last 3 digits) and probe it FIRST!
+        // 0. Pin-encoded direct host octet lookup (last 3 digits of 4-digit PIN encode TV's IPv4 octet)
         val cleanPin = pinHint?.trim().orEmpty()
         val encodedOctet = if (cleanPin.length == 4) cleanPin.takeLast(3).toIntOrNull()?.takeIf { it in 1..254 } else null
         if (encodedOctet != null) {
-            val octetCandidates = allSubnets.map { "$it.$encodedOctet" } + listOf("127.0.0.1", "10.0.2.2")
+            val octetCandidates = allSubnets.map { "$it.$encodedOctet" }
+                .filter { it !in topology.ownLocalIps }
+                .distinct()
             val hitFromPin = coroutineScope {
-                octetCandidates.distinct().map { ip ->
+                octetCandidates.map { ip ->
                     async {
                         if (isTvListeningAtIp(ip, timeoutMs = 850)) ip else null
                     }
@@ -1587,52 +1760,48 @@ object RnaControllerNetworkBridge {
             if (hitFromPin != null) return@withContext hitFromPin
         }
 
-        // 1. If we have a saved IP (or loopback if testing on same device), probe it next
-        val quickCandidates = listOfNotNull(savedIp, "127.0.0.1", "10.0.2.2").distinct()
-        for (ip in quickCandidates) {
-            if (isTvListeningAtIp(ip, timeoutMs = 400)) {
-                return@withContext ip
+        // 1. Probe previously saved real TV IP (excluding loopback and own phone IP)
+        if (!savedIp.isNullOrBlank() && savedIp != "127.0.0.1" && savedIp !in topology.ownLocalIps) {
+            if (isTvListeningAtIp(savedIp, timeoutMs = 450)) {
+                return@withContext savedIp
             }
         }
 
-        // 2. Broadcast UDP discovery packet on Wi-Fi & Hotspot broadcast addresses
-        try {
-            DatagramSocket().use { sock ->
-                sock.broadcast = true
-                sock.soTimeout = 500
-                val payload = "RNA_DISCOVER".toByteArray(Charsets.UTF_8)
-                val broadcastTargets = (listOf("255.255.255.255") + allSubnets.map { "$it.255" }).distinct()
-                for (bcast in broadcastTargets) {
-                    runCatching {
-                        val pkt = DatagramPacket(payload, payload.size, InetAddress.getByName(bcast), UDP_PORT)
-                        sock.send(pkt)
-                    }
-                }
-                val buf = ByteArray(512)
-                val recv = DatagramPacket(buf, buf.size)
-                sock.receive(recv)
-                val text = String(recv.data, 0, recv.length, Charsets.UTF_8)
-                if (text.startsWith("RNA_TV_HERE|")) {
-                    val discoveredIp = recv.address?.hostAddress ?: text.split("|").getOrNull(1)
-                    if (!discoveredIp.isNullOrBlank()) return@withContext discoveredIp
-                }
-            }
-        } catch (_: Exception) {
+        // 2. Multi-burst UDP discovery across Wi-Fi & Hotspot broadcast addresses
+        val udpHits = discoverTvIpsViaUdpBroadcast(topology, pinHint = cleanPin.ifBlank { null })
+        if (udpHits.isNotEmpty()) {
+            return@withContext udpHits.first()
         }
 
-        // 3. Parallel fast TCP probe across all active local /24 subnets
-        for (subnetPrefix in allSubnets.take(3)) {
+        // 3. Parallel fast TCP probe across active Wi-Fi/Hotspot /24 subnets (excluding phone's own IP)
+        val scanSubnets = if (topology.activeSubnets.isNotEmpty()) topology.activeSubnets else topology.fallbackSubnets.take(3)
+        for (subnetPrefix in scanSubnets) {
             val found = coroutineScope {
-                (1..254).chunked(42).firstNotNullOfOrNull { batch ->
+                (1..254).chunked(64).firstNotNullOfOrNull { batch ->
                     batch.map { host ->
                         async {
                             val candidate = "$subnetPrefix.$host"
-                            if (isTvListeningAtIp(candidate, timeoutMs = 260)) candidate else null
+                            if (candidate !in topology.ownLocalIps && isTvListeningAtIp(candidate, timeoutMs = 320)) {
+                                candidate
+                            } else {
+                                null
+                            }
                         }
                     }.awaitAll().firstOrNull { it != null }
                 }
             }
             if (found != null) return@withContext found
+        }
+
+        // 4. Emulator / same-device fallback ONLY if nothing on LAN matched
+        val localFallbacks = buildList {
+            add("10.0.2.2")
+            if (isServerRunning) add("127.0.0.1")
+        }
+        for (ip in localFallbacks) {
+            if (isTvListeningAtIp(ip, timeoutMs = 350)) {
+                return@withContext ip
+            }
         }
         null
     }
@@ -1685,25 +1854,96 @@ object RnaControllerNetworkBridge {
         prefs: SharedPreferences,
         pin: String,
         controllerName: String,
-        mode: RnaPhoneControllerMode
+        mode: RnaPhoneControllerMode,
+        explicitTargetIp: String? = null
     ): PhoneHandshakeResult = withContext(Dispatchers.IO) {
         savePhoneControllerName(prefs, controllerName)
-        val savedIp = getSavedTvIp(prefs)
-        val tvIp = discoverTvIpOnNetwork(savedIp, pinHint = pin)
-            ?: return@withContext PhoneHandshakeResult(
-                success = false,
-                errorMessage = "Could not find RNA TV on Wi-Fi / Hotspot. Make sure TV Devices > RNA Controller is open on the same network."
-            )
-
+        val cleanPin = pin.trim()
         val deviceId = getOrCreatePhoneDeviceId(prefs)
         val req = JSONObject().apply {
             put("type", "PAIR_WITH_PIN")
-            put("pin", pin.trim())
+            put("pin", cleanPin)
             put("deviceId", deviceId)
             put("deviceName", controllerName.trim().ifBlank { "RNA Phone" })
             put("mode", mode.id)
         }
-        sendTcpHandshakeRequest(prefs, tvIp, req)
+
+        // Stage 0: If user manually entered an explicit TV IP, try it directly first
+        val manualIp = explicitTargetIp?.trim().orEmpty()
+        if (manualIp.isNotBlank()) {
+            val manualRes = sendTcpHandshakeRequest(prefs, manualIp, req)
+            if (manualRes.success) return@withContext manualRes
+            return@withContext manualRes
+        }
+
+        val topology = inspectPhoneLanTopology()
+        val triedIps = mutableSetOf<String>()
+        var lastTvError: PhoneHandshakeResult? = null
+
+        suspend fun tryCandidateIps(candidates: List<String>, probeTimeoutMs: Int): PhoneHandshakeResult? {
+            val fresh = candidates.distinct().filter {
+                it.isNotBlank() && it !in triedIps && it !in topology.ownLocalIps
+            }
+            if (fresh.isEmpty()) return null
+            fresh.forEach { triedIps.add(it) }
+
+            val reachable = coroutineScope {
+                fresh.map { ip ->
+                    async {
+                        if (isTvListeningAtIp(ip, timeoutMs = probeTimeoutMs)) ip else null
+                    }
+                }.awaitAll().filterNotNull()
+            }
+            for (ip in reachable) {
+                val res = sendTcpHandshakeRequest(prefs, ip, req)
+                if (res.success) return res
+                if (res.tvIp.isNotBlank()) lastTvError = res
+            }
+            return null
+        }
+
+        // Stage 1: Instant Pin-Encoded Direct IP Probe (<50ms, works even when routers block UDP broadcasts!)
+        val encodedOctet = if (cleanPin.length == 4) cleanPin.takeLast(3).toIntOrNull()?.takeIf { it in 1..254 } else null
+        val savedIp = getSavedTvIp(prefs)?.takeIf { it != "127.0.0.1" }
+        val stage1Candidates = buildList {
+            if (encodedOctet != null) {
+                topology.activeSubnets.forEach { add("$it.$encodedOctet") }
+                topology.fallbackSubnets.forEach { add("$it.$encodedOctet") }
+            }
+            if (!savedIp.isNullOrBlank()) add(savedIp)
+        }
+        tryCandidateIps(stage1Candidates, probeTimeoutMs = 900)?.let { return@withContext it }
+
+        // Stage 2: Multi-burst UDP broadcast discovery (prioritizes TV matching this exact PIN)
+        val udpCandidates = discoverTvIpsViaUdpBroadcast(topology, pinHint = cleanPin)
+        tryCandidateIps(udpCandidates, probeTimeoutMs = 900)?.let { return@withContext it }
+
+        // Stage 3: Fast parallel TCP scan of active Wi-Fi / Hotspot /24 subnets
+        val scanSubnets = if (topology.activeSubnets.isNotEmpty()) topology.activeSubnets else topology.fallbackSubnets.take(3)
+        for (subnetPrefix in scanSubnets) {
+            val batches = (1..254).map { "$subnetPrefix.$it" }.chunked(64)
+            for (batch in batches) {
+                tryCandidateIps(batch, probeTimeoutMs = 340)?.let { return@withContext it }
+            }
+        }
+
+        // Stage 4: Emulator / same-device local fallback only if no LAN TV accepted the PIN
+        val localFallbacks = buildList {
+            add("10.0.2.2")
+            if (isServerRunning) add("127.0.0.1")
+        }
+        for (ip in localFallbacks) {
+            if (ip !in triedIps && isTvListeningAtIp(ip, timeoutMs = 400)) {
+                val res = sendTcpHandshakeRequest(prefs, ip, req)
+                if (res.success) return@withContext res
+                if (lastTvError == null && res.tvIp.isNotBlank()) lastTvError = res
+            }
+        }
+
+        lastTvError ?: PhoneHandshakeResult(
+            success = false,
+            errorMessage = "Could not find RNA TV on Wi-Fi / Hotspot. Make sure both devices are on the same network and check the 4-digit code."
+        )
     }
 
     private fun sendTcpHandshakeRequest(
@@ -1895,14 +2135,19 @@ object RnaControllerNetworkBridge {
         val prefs = getPhonePrefs(context)
         activePhoneDeviceId = getOrCreatePhoneDeviceId(prefs)
         savePhoneControllerName(prefs, controllerName)
-        if (!optionalTargetIp.isNullOrBlank()) {
-            saveLastTvIp(prefs, optionalTargetIp.trim())
+        val cleanManualIp = optionalTargetIp?.trim()?.takeIf { it.isNotBlank() }
+        if (cleanManualIp != null) {
+            saveLastTvIp(prefs, cleanManualIp)
         }
         val resolvedMode = if (mode == "CONTROLLER") RnaPhoneControllerMode.XBOX_GAMEPAD else RnaPhoneControllerMode.REMOTE
         scope.launch {
-            // Ensure local server is also started if pairing on the same device
-            ensureTvControllerServerStarted(context)
-            val res = pairPhoneWith4DigitPin(prefs, pinCode, controllerName, resolvedMode)
+            val res = pairPhoneWith4DigitPin(
+                prefs = prefs,
+                pin = pinCode,
+                controllerName = controllerName,
+                mode = resolvedMode,
+                explicitTargetIp = cleanManualIp
+            )
             if (res.success) {
                 activePhoneTvIp = res.tvIp
                 _phoneAssignedSlot.value = res.assignedSlot

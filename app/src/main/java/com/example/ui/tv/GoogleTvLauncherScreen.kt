@@ -7110,11 +7110,7 @@ private fun TvPowerHubDialog(
                                         item {
                                             ExpressiveToggleTile(
                                                 title = "Open RNA TV at Boot",
-                                                badge = if (openRnaAtBootEnabled) {
-                                                    "Opens RNA. TV Directly on Startup (Over Live TV)"
-                                                } else {
-                                                    "Off • Silent Background Pre-Warm Keeps Live TV Intact"
-                                                },
+                                                badge = if (openRnaAtBootEnabled) "Enabled" else "Off",
                                                 icon = Icons.Default.Launch,
                                                 checked = openRnaAtBootEnabled,
                                                 accentColor = AmberAccent,

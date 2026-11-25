@@ -261,18 +261,19 @@ object RnaAiToolsEngine {
                 * `volume:[0-100]` (sets exact TV volume %, e.g. `volume:21`)
                 * `open_app:[package_or_name]` (opens another app)
                 * `press:[back|home|ok|up|down|left|right|play_pause|mute|vol_up|vol_down|menu]`
-                * `warm_bg` (launch RNA TV in background on boot)
+                * `boot_warm` (open RNA TV on boot, then immediately return to previous non-launcher app when Open RNA TV at Boot is off)
+                * `previous_app` (reopen the previously opened app if not Android TV launcher)
                 * `rna_home` | `taskbar` | `recent_apps` | `voice_ai` | `agent` | `rna_ai` | `browser`
                 * `delay:[ms]` (wait before next action, e.g. `delay:1500`)
               Examples:
                 * "Set volume to 21% when Netflix opens" -> `${'$'}start trigger.add.app:com.netflix.mediaclient.volume:21 rna-tools;`
                 * "When screen turns on, open YouTube" -> `${'$'}start trigger.add.screen_on.open_app:com.google.android.youtube.tv rna-tools;`
-                * "When TV turns on, warm RNA TV in background" -> `${'$'}start trigger.add.device_boot.warm_bg rna-tools;`
+                * "When TV turns on, warm RNA TV and return to Live TV" -> `${'$'}start trigger.add.device_boot.boot_warm rna-tools;`
             - Remove an action (1-based index) or clear all actions on a trigger:
               `${'$'}start trigger.remove.[target].[1|2|all] rna-tools;`
             - Enable or disable a trigger:
               `${'$'}start trigger.toggle.[target].[on|off] rna-tools;`
-            - Open RNA TV straight at boot toggle:
+            - Open RNA TV at boot toggle (off by default):
               `${'$'}start open_at_boot.[on|off] rna-tools;`
 
             CURRENT CONFIGURED TRIGGERS:
@@ -764,7 +765,7 @@ object RnaAiToolsEngine {
         if (noArgExpected) return input to ""
         val knownActionPrefixes = listOf(
             ".volume:", ".open_app:", ".press:", ".delay:",
-            ".warm_bg", ".rna_home", ".taskbar", ".recent_apps",
+            ".boot_warm", ".warm_bg", ".previous_app", ".rna_home", ".taskbar", ".recent_apps",
             ".voice_ai", ".agent", ".rna_ai", ".browser",
             ".all", ".on", ".off", ".true", ".false"
         )
@@ -823,7 +824,8 @@ object RnaAiToolsEngine {
                 val ms = clean.substringAfter(":").filter { it.isDigit() }.toLongOrNull()?.coerceIn(100L, 30_000L) ?: 1000L
                 RnaTriggerActionItem(type = RnaTriggerActionType.DELAY_MS, delayMs = ms)
             }
-            lower == "warm_bg" || lower == "warm_background" -> RnaTriggerActionItem(type = RnaTriggerActionType.WARM_RNA_BACKGROUND)
+            lower == "boot_warm" || lower == "warm_bg" || lower == "warm_background" -> RnaTriggerActionItem(type = RnaTriggerActionType.BOOT_WARM_RNA_TV)
+            lower == "previous_app" || lower == "open_previous_app" -> RnaTriggerActionItem(type = RnaTriggerActionType.OPEN_PREVIOUS_APP)
             lower == "rna_home" -> RnaTriggerActionItem(type = RnaTriggerActionType.RNA_HOME)
             lower == "taskbar" -> RnaTriggerActionItem(type = RnaTriggerActionType.QUICK_APPS_TASKBAR)
             lower == "recent_apps" -> RnaTriggerActionItem(type = RnaTriggerActionType.RECENT_APPS_DRAWER)

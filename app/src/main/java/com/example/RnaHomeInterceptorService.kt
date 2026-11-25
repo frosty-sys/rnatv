@@ -45,6 +45,7 @@ class RnaHomeInterceptorService : AccessibilityService() {
 
         private val STOCK_TV_LAUNCHERS = setOf(
             "com.google.android.tvlauncher",
+            "com.google.android.apps.tv.launcherx",
             "com.google.android.leanbacklauncher",
             "com.google.android.tungsten.setupwraith",
             "com.amazon.tv.launcher",
@@ -62,8 +63,37 @@ class RnaHomeInterceptorService : AccessibilityService() {
             if (lower in STOCK_TV_LAUNCHERS) return true
             return lower.endsWith(".tvlauncher") ||
                 lower.endsWith(".leanbacklauncher") ||
+                lower.endsWith(".launcherx") ||
                 lower == "com.google.android.tvlauncher" ||
+                lower == "com.google.android.apps.tv.launcherx" ||
                 lower == "com.google.android.leanbacklauncher"
+        }
+
+        fun isEligiblePreviousAppPackage(context: Context, pkgName: String?): Boolean {
+            if (pkgName.isNullOrBlank()) return false
+            if (pkgName == context.packageName) return false
+            val lower = pkgName.lowercase(Locale.US)
+            if (lower == "android" ||
+                lower == "com.android.systemui" ||
+                lower == "com.android.providers.settings" ||
+                lower.contains("inputmethod") ||
+                lower.contains("keyboard") ||
+                lower.contains("setupwizard") ||
+                lower.contains("setupwraith")
+            ) {
+                return false
+            }
+            if (isStockTvLauncherPackage(pkgName)) return false
+            if (isGoogleAssistantPackage(pkgName)) return false
+            val defaultImePkg = runCatching {
+                Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
+                    ?.substringBefore('/')
+                    .orEmpty()
+            }.getOrDefault("")
+            if (defaultImePkg.isNotBlank() && pkgName.equals(defaultImePkg, ignoreCase = true)) {
+                return false
+            }
+            return true
         }
 
         private val GOOGLE_ASSISTANT_PACKAGES = setOf(
@@ -111,6 +141,8 @@ class RnaHomeInterceptorService : AccessibilityService() {
     private var lastAssistantDismissElapsedMs: Long = 0L
     private var lastStockLauncherInterceptElapsedMs: Long = 0L
     private var currentForegroundPackage: String = ""
+    @Volatile
+    private var lastNonLauncherForegroundPackage: String = ""
     private var lastAppOpenTriggerPackage: String = ""
     private var lastAppOpenTriggerElapsedMs: Long = 0L
     private var lastSpatialFocusedNodeBounds: Rect? = null
@@ -166,6 +198,16 @@ class RnaHomeInterceptorService : AccessibilityService() {
         syncSystemAgentOverlayWindow()
         registerUsbBootAutoBackReceiver()
         registerScreenOnTriggerReceiver()
+
+        // Run device-boot trigger once via AccessibilityService (bypasses Android 10+ BAL restrictions)
+        if (SystemClock.elapsedRealtime() <= 180_000L || com.example.ui.tv.RnaTriggersExecutor.isBootExecutionPending()) {
+            mainHandler.postDelayed({
+                com.example.ui.tv.RnaTriggersExecutor.handleDeviceBootOnce(
+                    context = this@RnaHomeInterceptorService,
+                    fromAccessibilityService = true
+                )
+            }, 1100L)
+        }
     }
 
     private fun registerScreenOnTriggerReceiver() {
@@ -968,6 +1010,9 @@ class RnaHomeInterceptorService : AccessibilityService() {
             if (pkgName.isNotBlank() && pkgName != "android" && pkgName != "com.android.systemui") {
                 val previousPkg = currentForegroundPackage
                 currentForegroundPackage = pkgName
+                if (isEligiblePreviousAppPackage(this, pkgName)) {
+                    lastNonLauncherForegroundPackage = pkgName
+                }
                 syncSystemAgentOverlayWindow()
 
                 // Fire custom App-Open Triggers whenever a new foreground app opens
@@ -1341,6 +1386,88 @@ class RnaHomeInterceptorService : AccessibilityService() {
 
     fun launchAiBarOverlayFromService() {
         launchRnaAssistantOverlay(null)
+    }
+
+    fun getCurrentOrLastNonLauncherPackage(allowFallbackWhenInRna: Boolean = true): String {
+        val activeRootPkg = runCatching { rootInActiveWindow?.packageName?.toString().orEmpty() }.getOrDefault("")
+        if (activeRootPkg.isNotBlank() && activeRootPkg != "android" && activeRootPkg != "com.android.systemui") {
+            if (isStockTvLauncherPackage(activeRootPkg)) return ""
+            if (isEligiblePreviousAppPackage(this, activeRootPkg)) return activeRootPkg
+        }
+
+        val topAppWindowPkg = runCatching {
+            windows?.firstOrNull { win ->
+                win.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION &&
+                    !win.root?.packageName.isNullOrBlank()
+            }?.root?.packageName?.toString().orEmpty()
+        }.getOrDefault("")
+        if (topAppWindowPkg.isNotBlank() && topAppWindowPkg != "android" && topAppWindowPkg != "com.android.systemui") {
+            if (isStockTvLauncherPackage(topAppWindowPkg)) return ""
+            if (isEligiblePreviousAppPackage(this, topAppWindowPkg)) return topAppWindowPkg
+        }
+
+        if (currentForegroundPackage.isNotBlank()) {
+            if (isStockTvLauncherPackage(currentForegroundPackage)) return ""
+            if (isEligiblePreviousAppPackage(this, currentForegroundPackage)) return currentForegroundPackage
+        }
+
+        if (allowFallbackWhenInRna && isEligiblePreviousAppPackage(this, lastNonLauncherForegroundPackage)) {
+            return lastNonLauncherForegroundPackage
+        }
+        return ""
+    }
+
+    fun launchRnaTvForBootWarmup(returnToPrevious: Boolean, returnPackage: String) {
+        mainHandler.post {
+            com.example.ui.tv.KeyRemapperBridge.notifyNavigateToHomeTabInMainActivity()
+        }
+        val intent = Intent(this, MainActivity::class.java).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION
+            )
+            putExtra(MainActivity.EXTRA_OPEN_TV_LAUNCHER, true)
+            putExtra(MainActivity.EXTRA_RESET_TO_HOME_TAB, true)
+            putExtra(MainActivity.EXTRA_BOOT_WARMUP_RETURN_TO_PREVIOUS, returnToPrevious)
+            if (returnToPrevious && returnPackage.isNotBlank()) {
+                putExtra(MainActivity.EXTRA_BOOT_WARMUP_RETURN_PACKAGE, returnPackage)
+            }
+        }
+        runCatching { startActivity(intent) }
+    }
+
+    fun launchPreviousAppFromService(targetPkg: String): Boolean {
+        if (!isEligiblePreviousAppPackage(this, targetPkg)) return false
+        return try {
+            val pm = packageManager
+            val launchIntent = pm.getLeanbackLaunchIntentForPackage(targetPkg)
+                ?: pm.getLaunchIntentForPackage(targetPkg)
+                ?: run {
+                    val mainMatches = pm.queryIntentActivities(
+                        Intent(Intent.ACTION_MAIN).setPackage(targetPkg),
+                        0
+                    )
+                    val activityInfo = mainMatches.firstOrNull { it.activityInfo?.exported == true }?.activityInfo
+                    if (activityInfo != null) {
+                        Intent(Intent.ACTION_MAIN).apply {
+                            component = android.content.ComponentName(activityInfo.packageName, activityInfo.name)
+                        }
+                    } else {
+                        null
+                    }
+                }
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                startActivity(launchIntent)
+                true
+            } else {
+                false
+            }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun launchAppPackageFromService(targetPkg: String): Boolean {
