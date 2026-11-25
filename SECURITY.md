@@ -6,7 +6,7 @@ Security updates and bug fixes are actively provided for the latest release bran
 
 | Version | Status | Support Details |
 | :--- | :---: | :--- |
-| **`v3.7.6`** *(Latest)* | ✅ | Active security patches and bug fixes |
+| **`v3.7.7`** *(Latest)* | ✅ | Active security patches and bug fixes |
 | **`< v3.7`** | ❌ | Unsupported — please upgrade via in-app updater |
 
 ---
@@ -37,7 +37,7 @@ If you discover a security issue affecting WebView isolation, `.rna` web bundles
 
 * **Vulnerability Description:** Summary of the issue and its potential security impact.
 * **Reproduction Steps:** Clear step-by-step instructions or a proof-of-concept.
-* **Environment Details:** Affected RNA. TV version (e.g., `v3.7.6`), TV device model, and Android TV OS version.
+* **Environment Details:** Affected RNA. TV version (e.g., `v3.7.7`), TV device model, and Android TV OS version.
 
 ### ⏱️ Response Timeline
 
