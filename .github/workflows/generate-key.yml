@@ -1,0 +1,26 @@
+name: Generate Release Keystore
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate JKS Keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore rnatv-release.jks \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias upload \
+            -storepass "frostysys1rnatv1pwd120121good1morning" \
+            -keypass "frostysys1rnatv1pwd120121good1morning" \
+            -dname "CN=RNA TV, OU=Development, O=frosty-sys, L=Unknown, ST=Unknown, C=US"
+          base64 -w 0 rnatv-release.jks > keystore_base64.txt
+      - name: Upload Keystore & Base64
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-signing-key
+          path: |
+            rnatv-release.jks
+            keystore_base64.txt
