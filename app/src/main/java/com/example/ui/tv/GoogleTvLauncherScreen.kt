@@ -8070,8 +8070,8 @@ private fun TvPowerHubDialog(
                                         }
                                         item {
                                             ExpressiveFunctionCard(
-                                                title = "Updates & More Apps",
-                                                badge = "Store & OTA",
+                                                title = if (com.example.BuildConfig.IS_FDROID) "Updates" else "Updates & More Apps",
+                                                badge = if (com.example.BuildConfig.IS_FDROID) "Managed by F-Droid" else "Store & OTA",
                                                 icon = Icons.Default.SystemUpdateAlt,
                                                 accentColor = EmeraldSuccess,
                                                 onClick = onOpenUpdatesDrawer,

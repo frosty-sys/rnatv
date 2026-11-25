@@ -57,6 +57,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -115,6 +116,7 @@ import androidx.core.content.FileProvider
 import androidx.core.graphics.drawable.toBitmap
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.BuildConfig
 import com.example.ui.theme.AmberAccent
 import com.example.ui.theme.CyanPrimary
 import com.example.ui.theme.EmeraldSuccess
@@ -510,7 +512,42 @@ internal fun resolveDeviceDownloadsFile(context: Context, fileName: String): Fil
  * Opens the Android system settings screen to allow installing unknown apps for RNA,
  * and/or launches the system package installer for the downloaded APK file.
  */
+internal fun openFDroidForAppUpdate(context: Context) {
+    val packageName = context.packageName
+    val fdroidWebUrl = "https://f-droid.org/packages/$packageName/"
+    val candidateIntents = buildList {
+        add(
+            Intent(Intent.ACTION_VIEW, Uri.parse(fdroidWebUrl)).apply {
+                setPackage("org.fdroid.fdroid")
+            }
+        )
+        add(
+            Intent(Intent.ACTION_VIEW, Uri.parse(fdroidWebUrl)).apply {
+                setPackage("org.fdroid.basic")
+            }
+        )
+        add(Intent(Intent.ACTION_VIEW, Uri.parse("fdroid.app://details?id=$packageName")))
+        context.packageManager.getLaunchIntentForPackage("org.fdroid.fdroid")?.let { add(it) }
+        context.packageManager.getLaunchIntentForPackage("org.fdroid.basic")?.let { add(it) }
+        add(Intent(Intent.ACTION_VIEW, Uri.parse(fdroidWebUrl)))
+    }
+    for (intent in candidateIntents) {
+        try {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+            return
+        } catch (_: Exception) {
+        }
+    }
+    Toast.makeText(
+        context,
+        "Open F-Droid on your TV to check for RNA. TV updates.",
+        Toast.LENGTH_LONG
+    ).show()
+}
+
 internal fun openAllowInstallUnknownAppsSettings(context: Context) {
+    if (BuildConfig.IS_FDROID) return
     val intents = buildList {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             add(
@@ -535,6 +572,7 @@ internal fun openAllowInstallUnknownAppsSettings(context: Context) {
 }
 
 internal fun promptInstallApkFile(context: Context, apkFile: File) {
+    if (BuildConfig.IS_FDROID) return
     if (!apkFile.exists()) {
         Toast.makeText(context, "APK file no longer exists", Toast.LENGTH_SHORT).show()
         return
@@ -609,7 +647,7 @@ fun TvUpdatesSideDrawer(
         if (visible) {
             delay(80L)
             checkUpdatesBtnFocus.safeRequestFocus()
-            if (updateDescription.isBlank()) {
+            if (!BuildConfig.IS_FDROID && updateDescription.isBlank()) {
                 scope.launch {
                     val desc = fetchRemoteRawText(RNA_UPDATE_DESC_URL)
                     if (!desc.isNullOrBlank()) {
@@ -642,6 +680,9 @@ fun TvUpdatesSideDrawer(
         missingMessage: String = "No app file found in server",
         onStatusChange: (ApkDownloadStatus) -> Unit
     ): Job {
+        if (BuildConfig.IS_FDROID) {
+            return scope.launch {}
+        }
         return scope.launch {
             if (!hasActiveInternetConnection(context)) {
                 onStatusChange(ApkDownloadStatus.Error("No internet connection."))
@@ -780,6 +821,7 @@ fun TvUpdatesSideDrawer(
     }
 
     fun checkAndDownloadRnaUpdate() {
+        if (BuildConfig.IS_FDROID) return
         if (isCheckingUpdate || rnaDownloadStatus is ApkDownloadStatus.Downloading) return
         isCheckingUpdate = true
         updateCheckError = null
@@ -1218,19 +1260,103 @@ private fun RnaMainUpdaterContent(
                         fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = "Next-Gen Hybrid Android TV Container",
+                        text = if (BuildConfig.IS_FDROID) {
+                            "Version ${BuildConfig.VERSION_NAME} • F-Droid Edition"
+                        } else {
+                            "Next-Gen Hybrid Android TV Container"
+                        },
                         color = CyanPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Update server: edvanced.ct.ws",
+                        text = if (BuildConfig.IS_FDROID) {
+                            "Updates managed by F-Droid"
+                        } else {
+                            "Update server: edvanced.ct.ws"
+                        },
                         color = Color(0xFF9092A4),
                         fontSize = 11.sp
                     )
                 }
             }
+        }
+
+        if (BuildConfig.IS_FDROID) {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = Color(0xFF191D2C),
+                border = BorderStroke(1.dp, EmeraldSuccess.copy(alpha = 0.45f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("tv_fdroid_updates_info_card")
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = EmeraldSuccess,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "UPDATES ARE MANAGED BY F-DROID",
+                            color = EmeraldSuccess,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+                    Text(
+                        text = "This F-Droid edition disables in-app APK downloads and self-updates. Use the F-Droid client on your device to check for and install the latest RNA. TV updates.",
+                        color = Color(0xFFE4E6F0),
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp
+                    )
+                }
+            }
+
+            var openFdroidFocused by remember { mutableStateOf(false) }
+            val openFdroidScale by animateFloatAsState(
+                targetValue = if (openFdroidFocused) 1.03f else 1f,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "OpenFdroidScale"
+            )
+            Button(
+                onClick = { openFDroidForAppUpdate(context) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (openFdroidFocused) Color.White else CyanPrimary,
+                    contentColor = Color(0xFF10131C)
+                ),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .scale(openFdroidScale)
+                    .focusRequester(checkUpdatesBtnFocus)
+                    .onFocusChanged { openFdroidFocused = it.isFocused }
+                    .testTag("tv_open_fdroid_updates_button")
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Open F-Droid to Update",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 14.sp
+                )
+            }
+            return@Column
         }
 
         // 2. Check for Updates Button

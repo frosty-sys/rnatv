@@ -14,10 +14,23 @@ android {
     applicationId = "com.aistudio.rna.xptvk"
     minSdk = 24
     targetSdk = 36
-    versionCode = 376
-    versionName = "3.7.6"
+    versionCode = 377
+    versionName = "3.7.7"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  flavorDimensions += "distribution"
+  productFlavors {
+    create("github") {
+      isDefault = true
+      dimension = "distribution"
+      buildConfigField("boolean", "IS_FDROID", "false")
+    }
+    create("fdroid") {
+      dimension = "distribution"
+      buildConfigField("boolean", "IS_FDROID", "true")
+    }
   }
 
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,

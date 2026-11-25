@@ -1039,8 +1039,8 @@ internal fun TvControlPanelDialogContent(
                                 val functionCards = buildList {
                                     add(
                                         ExpressiveFunctionSpec(
-                                            title = "System Updates & More Apps",
-                                            badge = "UPDATES",
+                                            title = if (com.example.BuildConfig.IS_FDROID) "System Updates" else "System Updates & More Apps",
+                                            badge = if (com.example.BuildConfig.IS_FDROID) "F-DROID" else "UPDATES",
                                             icon = Icons.Default.SystemUpdateAlt,
                                             containerColor = Color(0xFF1A283B),
                                             iconContainerColor = Color(0xFF0284C7),
