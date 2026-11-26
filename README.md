@@ -21,27 +21,39 @@
 
 ---
 
+## 📸 Screenshots
+
+| Home Screen | Control Panel |
+| :---: | :---: |
+| ![Home Screen](assets/screenshots/home.png) | ![Control Panel](assets/screenshots/control-panel.png) |
+
+| RNA. AI Assistant | Remote Remapper |
+| :---: | :---: |
+| ![RNA. AI Assistant](assets/screenshots/ai-assistant.png) | ![Remote Remapper](assets/screenshots/remapper.png) |
+
+---
+
 ## 🌟 Key Features
 
-* **Ad-Free Google TV Launcher:** A clean, fast home screen with customizable single-row or two-row app docks, recent-app history, and instant app launching.
-* **Remote Button Remapper:** Remap single, double, triple, and long remote-button presses to apps, AI features, Recent Apps, Quick Actions, or other actions.
-* **43+ Bundled 4K Wallpapers:** Choose from bundled 4K preset wallpapers or use your own photos. Native live wallpaper support is also included.
-* **Multi-User Offline Profiles:** Create separate profiles with 28 preset avatars or local photos, with isolated or shared browser data.
-* **Integrated TV Web Browser:** Browse the web with an on-screen D-Pad keyboard, full-screen mode, downloads, and one-tap conversion of websites into standalone TV apps.
-* **RNA. AI Assistant & Agentic Control:** Use 52+ free keyless AI models or an optional user-provided key, retain local conversation history, and control supported TV actions through the assistant.
-* **RNA. Controller & Gamepad Bridge:** Control the TV from a phone over local Wi-Fi using a Material 3 Expressive remote/gamepad interface and remappable Android or Xbox-style buttons.
-* **Performance Mode:** Disable animations from the Control Panel for faster response on resource-constrained TV boxes.
+- **Ad-Free Google TV Launcher:** Clean, lightning-fast home screen with customizable single-row or two-row app docks, recent apps history, and instant app launching.
+- **Remote Button Remapper:** Open **Remapper** from the Functions tab to quickly customize your remote buttons and assign single, double, triple, and long presses to specific apps, AI, Recent Apps, Quick App Taskbar, and much more.
+- **43+ Bundled 4K Wallpapers + Live Wallpapers:** Switch instantly between stunning 4K preset wallpapers or pick your own custom photos, along with native 4K Live Wallpaper support.
+- **Multi-User Offline Profiles:** Create separate profiles with custom avatars (28 offline preset avatars + local photo picker) and isolated or shared browser data.
+- **Integrated TV Web Browser:** Full-featured web browser with an on-screen D-Pad keyboard, full-screen mode, and one-tap conversion of websites into standalone TV apps.
+- **RNA. AI Assistant & Agentic Control:** Full-screen AI assistant with 52+ free keyless AI models out of the box, local conversation history, and autonomous capabilities (screenshots, D-Pad actions, app/website launching).
+- **RNA. Controller & Gamepad Bridge:** Control your TV from your phone over local Wi-Fi with an M3 Expressive gamepad and remote featuring remapped physical Xbox/Android buttons.
+- **Performance Mode:** Instant toggle in the Control Panel that disables all animations for maximum speed on resource-constrained TV boxes.
 
 ---
 
 ## 📋 System Requirements
 
-* Android 10 or later (API 29+)
-* Android TV or Google TV device
-* An internet connection for browsing, updates, controller pairing, and cloud AI features
-* Accessibility, overlay, usage-access, or installer permissions may be required for specific features
-* A D-Pad remote or game controller is recommended
-* Google Play Services are not required for all local launcher features
+- Android 10 or later (API 29+)
+- Android TV or Google TV device
+- An internet connection for browsing, updates, controller pairing, and cloud AI features
+- Accessibility, overlay, usage-access, or installer permissions may be required for specific features
+- A D-Pad remote or game controller is recommended
+- Google Play Services are not required for all local launcher features
 
 > Hardware requirements vary depending on device specifications and enabled features.
 
@@ -49,70 +61,61 @@
 
 ## 📥 Installation
 
-### Recommended: Download a Release
+> [!NOTE]
+> The `-github` build supports in-app updates. F-Droid builds may receive updates only through F-Droid or another F-Droid-compatible store.
 
-1. Open the [latest RNA. TV release](https://github.com/frosty-sys/rnatv/releases/latest).
-2. Download the GitHub APK:
-   **`RNA_v3.7.7-github.apk`**
-3. Transfer the APK to your Android TV or Google TV device.
+### Option 1 (Recommended): Transfer with Send Files to TV
 
-The `-github` build supports in-app updates. F-Droid builds may receive updates only through F-Droid or another F-Droid-compatible store.
+To install and configure **RNA. TV** on your Android TV or Google TV device, follow these step-by-step instructions:
 
----
+#### Step 1: Install "Send Files to TV" (SFTV) on TV and Phone
+1. On your **Android TV / Google TV**, open the Google Play Store, search for **"Send Files to TV" (SFTV)**, and install it.
+   > **Note:** After installing SFTV, it is recommended to temporarily disable the Google Play Store (`Settings > Apps > See all apps > Google Play Store > Disable`). Otherwise, Google Play Protect may block the installation of the RNA. TV APK. Once RNA. TV is installed, you can re-enable the Google Play Store.
+2. On your **Android Phone / Tablet**, open the Google Play Store, search for **"Send Files to TV" (SFTV)**, and install the companion app.
 
-### Option 1: Transfer with Send Files to TV
+#### Step 2: Transfer the APK File to Your TV
+1. Download the latest RNA. TV installation APK (`RNA_vX.X.X-github.apk`) on your phone from the [Latest Release](https://github.com/frosty-sys/rnatv/releases/latest) page.
+2. Open **Send Files to TV** on both your TV (select **Receive**) and your phone (select **Send**).
+3. Select the downloaded `RNA_vX.X.X-github.apk` file on your phone and choose your TV to transfer the file wirelessly over your local Wi-Fi network.
 
-#### Step 1: Install Send Files to TV
+#### Step 3: Install the App on Your TV
+1. On your TV, open your file manager (or the File Explorer inside SFTV / Downloads).
+2. Click on the transferred `RNA_vX.X.X-github.apk` file.
+3. When prompted by Android Security, allow installation from unknown sources for your file manager, then click **Install**.
 
-Install **Send Files to TV (SFTV)** on both devices:
-
-* Android TV or Google TV
-* Android phone or tablet
-
-#### Step 2: Transfer the APK
-
-1. Download the APK on your phone.
-2. Open SFTV on both devices.
-3. Select **Receive** on the TV and **Send** on the phone.
-4. Select the RNA. TV APK and send it to the TV.
-
-#### Step 3: Install the APK
-
-1. Open your file manager or the file explorer inside SFTV.
-2. Open the transferred APK.
-3. Allow installation from unknown sources for the file manager if prompted.
-4. Select **Install**.
-
-> **Play Protect notice:** If Play Protect repeatedly blocks the installer for a sideloaded build, review its warning and verify the APK came from this repository’s official release page. Do not disable Android security features unless you understand and accept the associated risks.
+#### Step 4: Grant Accessibility Permission *(Crucial for TV Home Button Interception)*
+To ensure that pressing the **Home** or **Back** button on your TV remote always keeps you inside RNA. TV (replacing the default stock launcher seamlessly):
+1. On your Android TV, open **Settings**.
+2. Navigate to **Device Preferences** (or **Settings > Accessibility**).
+3. Select **Accessibility**.
+4. Find **RNA.** (or **RNA. Home Interceptor Service**) in the list of services and toggle it **ON**.
+5. Grant any other requested permissions (such as **Display over other apps** and **Usage Access**) when prompted during first launch to enable Live AI assistant overlays and fast app switching.
 
 ---
 
 ### Option 2: Install Over ADB
 
+Download the latest `-github` APK from the [Latest Release](https://github.com/frosty-sys/rnatv/releases/latest) page, then run:
+
 ```bash
 adb connect <TV_IP_ADDRESS>:5555
-adb install RNA_v3.7.7-github.apk
+adb install RNA_vX.X.X-github.apk
 ```
 
 If RNA. TV is already installed, update it with:
 
 ```bash
-adb install -r RNA_v3.7.7-github.apk
+adb install -r RNA_vX.X.X-github.apk
 ```
 
-### Step 4: Enable Accessibility
+---
 
-Pressing **Home** or **Back** should keep you inside RNA. TV after the launcher has been enabled.
+## 📱 Pairing RNA. Controller
 
-1. Open the TV **Settings**.
-2. Navigate to **Accessibility** or **Device Preferences → Accessibility**.
-3. Open the RNA. TV accessibility service.
-4. Enable **RNA. Home Interceptor Service**.
-5. Grant overlay, usage-access, and other requested permissions if you want to use the related features.
+To use your phone as a remote or gamepad bridge over local Wi-Fi:
 
-You can usually open the TV launcher settings and select RNA. TV as the default home app.
-
-> Accessibility permissions and settings can vary significantly by TV manufacturer and Android TV build.
+1. Ensure both your TV and phone are connected to the same local Wi-Fi network.
+2. Open **RNA. Controller** from the TV's Control Panel / Functions tab and follow the on-screen pairing prompt (QR code / local URL) from your phone.
 
 ---
 
@@ -122,12 +125,12 @@ RNA. TV stores profiles, browser sessions, conversations, wallpapers, and prefer
 
 Common permissions include:
 
-* **Accessibility Service:** Detects Home and Back button actions.
-* **Display over other apps:** Enables AI assistant and quick-action overlays.
-* **Usage Access:** Provides recent-app detection and fast app switching.
-* **Storage / media access:** Allows custom wallpapers and local file selection.
-* **Network access:** Supports browsing, downloads, updates, AI features, remote-controller communication, and device discovery.
-* **Package installation:** Required for the built-in update installer.
+- **Accessibility Service:** Detects Home and Back button actions.
+- **Display over other apps:** Enables AI assistant and quick-action overlays.
+- **Usage Access:** Provides recent-app detection and fast app switching.
+- **Storage / media access:** Allows custom wallpapers and local file selection.
+- **Network access:** Supports browsing, downloads, updates, AI features, remote-controller communication, and device discovery.
+- **Package installation:** Required for the built-in update installer.
 
 RNA. TV provides keyless AI fallback options and supports optional user-provided keys. Never add real API keys or credentials to source files or `.env` files before contributing.
 
@@ -137,16 +140,16 @@ RNA. TV provides keyless AI fallback options and supports optional user-provided
 
 Open **Controls** in the top bar to access:
 
-* **YT Search Widget**
-* **Startup Wallpaper Splash Screen**
-* **Performance Mode**
-* **Sleep timers**
-* **Blue-light warmth filters**
-* **Voice assistant settings**
-* **Remote Remapper**
-* **Updates**
+- **YT Search Widget**
+- **Startup Wallpaper Splash Screen**
+- **Performance Mode**
+- **Sleep timers**
+- **Blue-light warmth filters**
+- **Voice assistant settings**
+- **Remote Remapper**
+- **Updates**
 
-The Updates section can download and install new GitHub releases directly on the device.
+The Updates section (`Control Panel > Functions > Updates`) can download and install new GitHub releases directly on the device. The **Remapper** in the Functions tab lets you quickly customize your remote buttons.
 
 ---
 
@@ -154,17 +157,17 @@ The Updates section can download and install new GitHub releases directly on the
 
 ### Prerequisites
 
-* Android Studio with Kotlin and Jetpack Compose support
-* JDK 17 or newer
-* Android SDK 29 or later
-* Android SDK 36 recommended for the current project configuration
-* A physical Android TV / Google TV device or an emulator
-* ADB access for device testing
+- Android Studio with Kotlin and Jetpack Compose support
+- JDK 17 or newer
+- Android SDK 29 or later
+- Android SDK 36 recommended for the current project configuration
+- A physical Android TV / Google TV device or an emulator
+- ADB access for device testing
 
 ### Clone and Build
 
 ```bash
-git clone https://github.com/frosty-sys/rnatv.git
+git clone [https://github.com/frosty-sys/rnatv.git](https://github.com/frosty-sys/rnatv.git)
 cd rnatv
 ```
 
@@ -172,10 +175,10 @@ Open the repository in Android Studio and allow Gradle to sync.
 
 Copy `.env.example` to `.env` only if local environment configuration is needed. Never commit secrets, tokens, or API keys.
 
-Build the debug APK:
+Build the GitHub debug APK:
 
 ```bash
-./gradlew assembleDebug
+./gradlew assembleGithubDebug
 ```
 
 Install it on a connected Android TV or Google TV device:
@@ -204,20 +207,20 @@ Run on-device instrumented tests:
 
 Test locations:
 
-* `app/src/test/java/` — local unit and Robolectric tests
-* `app/src/androidTest/java/` — on-device instrumented tests
+- `app/src/test/java/` — local unit and Robolectric tests
+- `app/src/androidTest/java/` — on-device instrumented tests
 
 Before submitting a UI or navigation change, test:
 
-* 1080p and 4K layouts
-* D-Pad movement, focus, and Back behavior
-* Center/OK and remote-button activation
-* Profile switching
-* Browser and keyboard behavior
-* Accessibility and overlay interactions
-* Performance Mode
-* Physical Android TV devices and emulators
-* Low-memory or resource-constrained devices
+- 1080p and 4K layouts
+- D-Pad movement, focus, and Back behavior
+- Center/OK and remote-button activation
+- Profile switching
+- Browser and keyboard behavior
+- Accessibility and overlay interactions
+- Performance Mode
+- Physical Android TV devices and emulators
+- Low-memory or resource-constrained devices
 
 Include screenshots, a recording, device model, Android version, and reproduction steps in the pull request when relevant.
 
@@ -251,15 +254,15 @@ rnatv/
 
 Main source areas:
 
-* `MainActivity.kt` — primary launcher activity
-* `RnaAiActivity.kt` — AI assistant UI
-* `WebContainerActivity.kt` — web browser and website-container behavior
-* `RnaHomeInterceptorService.kt` — Home and Back interception
-* `RnaTvKeyboardActivity.kt` / `RnaTvInputMethodService.kt` — TV keyboard support
-* `PackageInstallerActivity.kt` / update receivers — release installation and update handling
-* `data/` — databases, entities, repositories, and application data
-* `ui/` — launcher, tabs, themes, TV screens, browser UI, and Compose components
-* `util/` — package, app, shortcut, and helper utilities
+- `MainActivity.kt` — primary launcher activity
+- `RnaAiActivity.kt` — AI assistant UI
+- `WebContainerActivity.kt` — web browser and website-container behavior
+- `RnaHomeInterceptorService.kt` — Home and Back interception
+- `RnaTvKeyboardActivity.kt` / `RnaTvInputMethodService.kt` — TV keyboard support
+- `PackageInstallerActivity.kt` / update receivers — release installation and update handling
+- `data/` — databases, entities, repositories, and application data
+- `ui/` — launcher, tabs, themes, TV screens, browser UI, and Compose components
+- `util/` — package, app, shortcut, and helper utilities
 
 ---
 
@@ -275,10 +278,10 @@ Check that **RNA. Home Interceptor Service** is enabled. TV manufacturers and th
 
 ### The APK cannot be installed
 
-* Verify that the APK came from the official [RNA. TV releases page](https://github.com/frosty-sys/rnatv/releases).
-* Enable installation from unknown sources for the selected file manager.
-* Remove an incompatible older package if the package signature or application ID changed.
-* Check that the device has sufficient free storage.
+- Verify that the APK came from the official [RNA. TV releases page](https://github.com/frosty-sys/rnatv/releases).
+- Enable installation from unknown sources for the selected file manager.
+- Remove an incompatible older package if the package signature or application ID changed.
+- Check that the device has sufficient free storage.
 
 ### UI or video playback is slow
 
@@ -294,12 +297,11 @@ Use only the D-Pad and report the screen, device model, Android version, and rem
 
 To return to the original launcher:
 
-1. Open **Settings → Apps**.
+1. Open **Control Panel**.
 2. Find the current home/launcher settings.
-3. Select **Default apps → Home app**.
-4. Choose the manufacturer’s stock launcher.
-5. Disable the RNA. TV Accessibility service if it is no longer needed.
-6. Uninstall RNA. TV only if you no longer want to keep it installed.
+3. Toggle **`set RNA. TV as default launcher over stock launcher`** off.
+4. Disable the RNA. TV Accessibility service if it is no longer needed.
+5. Uninstall RNA. TV only if you no longer want to keep it installed.
 
 Exact menu names vary by Android TV manufacturer.
 
@@ -320,9 +322,9 @@ Before opening a pull request:
 
 Development discussions and bug reports can be opened through the repository:
 
-* [Report a bug](https://github.com/frosty-sys/rnatv/issues/new)
-* [Request a feature](https://github.com/frosty-sys/rnatv/issues/new)
-* [View open pull requests](https://github.com/frosty-sys/rnatv/pulls)
+- [Report a bug](https://github.com/frosty-sys/rnatv/issues/new)
+- [Request a feature](https://github.com/frosty-sys/rnatv/issues/new)
+- [View open pull requests](https://github.com/frosty-sys/rnatv/pulls)
 
 ---
 
