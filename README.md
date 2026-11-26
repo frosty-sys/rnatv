@@ -39,14 +39,36 @@
 </table>
 
 <!--
-| RNA. AI Assistant | Control Panel |
-| :---: | :---: |
-| ![RNA. AI Assistant](assets/screenshots/ai-assistant.png) | ![Control Panel](assets/screenshots/search.png) |
+<table>
+  <thead>
+    <tr>
+      <th width="50%" align="center">RNA. AI Assistant</th>
+      <th width="50%" align="center">Control Panel</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="assets/screenshots/ai-assistant.png" alt="RNA. AI Assistant" width="100%"></td>
+      <td align="center"><img src="assets/screenshots/search.png" alt="Control Panel" width="100%"></td>
+    </tr>
+  </tbody>
+</table>
 -->
 
-| File Explorer | Setup Wizard |
-| :---: | :---: |
-| ![File Explorer](assets/screenshots/file.png) | ![setup wizard](assets/screenshots/setup.png) |
+<table>
+  <thead>
+    <tr>
+      <th width="50%" align="center">File Explorer</th>
+      <th width="50%" align="center">Setup Wizard</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="assets/screenshots/file.png" alt="File Explorer" width="100%"></td>
+      <td align="center"><img src="assets/screenshots/setup.png" alt="Setup Wizard" width="100%"></td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
