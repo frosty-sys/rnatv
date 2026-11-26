@@ -15,7 +15,6 @@
 
 <br>
 
-![RNA. TV banner](app/src/main/res/drawable/ic_tv_banner2.png)
 
 **RNA. TV** is a high-performance, ad-free Android TV / Google TV launcher and application runtime built with Kotlin and Jetpack Compose. It combines native Android capabilities with a built-in web browser, offline profiles, remote control tools, a phone controller, live wallpapers, and an integrated AI assistant.
 
