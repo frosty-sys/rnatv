@@ -25,7 +25,7 @@
 
 | Home Screen | Control Panel |
 | :---: | :---: |
-| ![Home Screen](assets/screenshots/home.png) | ![Control Panel](assets/screenshots/control-panel.png) |
+| ![Home Screen](app/src/main/res/drawable/ic_tv_banner2.png) | ![Control Panel](assets/screenshots/control-panel.png) |
 
 | RNA. AI Assistant | Remote Remapper |
 | :---: | :---: |
