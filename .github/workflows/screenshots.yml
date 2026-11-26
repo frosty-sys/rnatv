@@ -56,6 +56,12 @@ jobs:
             sleep 0.5
           }
 
+          launch_rna_home() {
+            adb shell am start -n "$PKG/.MainActivity" || \
+              adb shell monkey -p "$PKG" -c android.intent.category.LEANBACK_LAUNCHER 1
+            sleep 3
+          }
+
           skip_setup() {
             # Step through all 5 setup screens: dismiss keyboard -> down -> right -> OK
             for step in 1 2 3 4 5; do
@@ -65,7 +71,10 @@ jobs:
               press KEYCODE_DPAD_CENTER 1
               sleep 1.5
             done
+            # Close file explorer opened after setup and launch RNA. TV home screen
+            press KEYCODE_BACK 3
             dismiss_keyboard
+            launch_rna_home
           }
 
           reset_top_bar() {
@@ -74,9 +83,7 @@ jobs:
           }
 
           go_home() {
-            adb shell monkey -p "$PKG" -c android.intent.category.LEANBACK_LAUNCHER 1 || \
-              adb shell am start -n "$PKG/.MainActivity"
-            sleep 3
+            launch_rna_home
           }
 
           # Press Back multiple times, hide keyboard, and return cleanly to Home
@@ -84,7 +91,7 @@ jobs:
             local backs=${1:-3}
             press KEYCODE_BACK "$backs"
             dismiss_keyboard
-            go_home
+            launch_rna_home
           }
 
           # Find downloaded APK and auto-detect package name
@@ -95,8 +102,8 @@ jobs:
           echo "Installing: $APK_PATH (Package: $PKG)"
           adb install -r "$APK_PATH"
 
-          # Launch app and skip the 5-step setup wizard first
-          go_home
+          # Launch app, complete setup, close file explorer, and open RNA. TV home screen
+          launch_rna_home
           skip_setup
 
           # --- 01-03: HOME SCREEN & FAVORITES DOCK ---
