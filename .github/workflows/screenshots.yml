@@ -115,7 +115,7 @@ jobs:
           press KEYCODE_DPAD_RIGHT 1
           press KEYCODE_DPAD_CENTER 1
           snap "06_search_screen" 2
-          press KEYCODE_BACK 1
+          press KEYCODE_BACK 2
 
           # --- 07-10: APPS TAB (index 4) & BROWSER TAB (index 5) ---
           reset_top_bar
@@ -189,7 +189,7 @@ jobs:
           press KEYCODE_DPAD_DOWN 4
           snap "21_control_panel_sidebar_bottom" 1
 
-          press KEYCODE_DPAD_LEFT 3
+          press KEYCODE_LEFT 3
           press KEYCODE_DPAD_CENTER 1
           snap "22_remapper_main" 3
 
