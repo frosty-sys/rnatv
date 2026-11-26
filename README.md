@@ -31,6 +31,10 @@
 | :---: | :---: |
 | ![RNA. AI Assistant](assets/screenshots/ai-assistant.png) | ![Remote Remapper](assets/screenshots/remapper.png) |
 
+| File Explorer | Setup Wizard |
+| :---: | :---: |
+| ![RNA. AI Assistant](assets/screenshots/file.png) | ![Remote Remapper](assets/screenshots/setup.png) |
+
 ---
 
 ## 🌟 Key Features
