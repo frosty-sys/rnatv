@@ -1,0 +1,70 @@
+name: Publish F-Droid Repo
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download Release APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p fdroid-src/repo downloaded-apks
+          gh release download --pattern "*.apk" --dir downloaded-apks
+          cp downloaded-apks/*-fdroid.apk fdroid-src/repo/ || cp downloaded-apks/*.apk fdroid-src/repo/
+
+      - name: Install fdroidserver and Build Repo
+        env:
+          FDROID_KEY_B64: ${{ secrets.FDROID_KEY_B64 }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3-pip
+          pip install --break-system-packages fdroidserver
+
+          cd fdroid-src
+          cat << 'EOF' > config.yml
+          repo_url: "https://frosty-sys.github.io/rnatv/repo"
+          repo_name: "RNA. TV Repo"
+          repo_description: "Android TV launcher builds for RNA. TV"
+          archive_older: 3
+          EOF
+
+          if [ -n "$FDROID_KEY_B64" ]; then
+            echo "$FDROID_KEY_B64" | base64 -d > keystore.p12
+          fi
+
+          fdroid update --create-key
+          fdroid update
+
+          echo "=== BASE64 KEYSTORE FOR GITHUB SECRET FDROID_KEY_B64 ==="
+          base64 -w 0 keystore.p12
+          echo ""
+          echo "=== REPO FINGERPRINT ==="
+          fdroid update --verbose 2>&1 | grep -i -E "fingerprint|repo" || true
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: fdroid-src/repo
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
