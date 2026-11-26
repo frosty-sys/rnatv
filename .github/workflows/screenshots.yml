@@ -49,6 +49,25 @@ jobs:
             echo "Captured: ${name}.png"
           }
 
+          dismiss_keyboard() {
+            press KEYCODE_BACK 1
+            adb shell input keyevent KEYCODE_ESCAPE || true
+            adb shell cmd input_method hide-soft-input 0 || true
+            sleep 0.5
+          }
+
+          complete_setup_wizard() {
+            # Walk through the 5-step first-boot wizard
+            for step in 1 2 3 4 5; do
+              dismiss_keyboard
+              press KEYCODE_DPAD_DOWN 4
+              press KEYCODE_DPAD_RIGHT 4
+              press KEYCODE_DPAD_CENTER 1
+              sleep 1.5
+            done
+            dismiss_keyboard
+          }
+
           reset_top_bar() {
             press KEYCODE_DPAD_UP 2
             press KEYCODE_DPAD_LEFT 6
@@ -60,12 +79,17 @@ jobs:
             sleep 3
           }
 
+          # Find downloaded APK and auto-detect package name
           APK_PATH=$(find downloaded-apk -name "*.apk" | head -n 1)
           BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
           PKG=$("$BUILD_TOOLS/aapt2" dump packagename "$APK_PATH")
 
           echo "Installing: $APK_PATH (Package: $PKG)"
           adb install -r "$APK_PATH"
+
+          # Launch app and complete the 5-step setup wizard first
+          go_home
+          complete_setup_wizard
 
           # --- 01-03: HOME SCREEN & FAVORITES DOCK ---
           go_home
