@@ -23,9 +23,20 @@
 
 ## 📸 Screenshots
 
-| Home Screen | Search |
-| :---: | :---: |
-| ![Home Screen](app/src/main/res/drawable/ic_tv_banner2.png) | ![Search](assets/screenshots/search.png) |
+<table>
+  <thead>
+    <tr>
+      <th width="50%" align="center">Home Screen</th>
+      <th width="50%" align="center">Search</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="app/src/main/res/drawable/ic_tv_banner2.png" alt="Home Screen" width="100%"></td>
+      <td align="center"><img src="assets/screenshots/search.png" alt="Search" width="100%"></td>
+    </tr>
+  </tbody>
+</table>
 
 <!--
 | RNA. AI Assistant | Control Panel |
