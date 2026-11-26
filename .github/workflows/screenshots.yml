@@ -56,8 +56,8 @@ jobs:
             sleep 0.5
           }
 
-          complete_setup_wizard() {
-            # Walk through the 5-step first-boot wizard
+          skip_setup() {
+            # Step through all 5 setup screens: dismiss keyboard -> down -> right -> OK
             for step in 1 2 3 4 5; do
               dismiss_keyboard
               press KEYCODE_DPAD_DOWN 4
@@ -79,6 +79,14 @@ jobs:
             sleep 3
           }
 
+          # Press Back multiple times, hide keyboard, and return cleanly to Home
+          return_home() {
+            local backs=${1:-3}
+            press KEYCODE_BACK "$backs"
+            dismiss_keyboard
+            go_home
+          }
+
           # Find downloaded APK and auto-detect package name
           APK_PATH=$(find downloaded-apk -name "*.apk" | head -n 1)
           BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
@@ -87,12 +95,12 @@ jobs:
           echo "Installing: $APK_PATH (Package: $PKG)"
           adb install -r "$APK_PATH"
 
-          # Launch app and complete the 5-step setup wizard first
+          # Launch app and skip the 5-step setup wizard first
           go_home
-          complete_setup_wizard
+          skip_setup
 
           # --- 01-03: HOME SCREEN & FAVORITES DOCK ---
-          go_home
+          return_home 1
           snap "01_home" 5
 
           press KEYCODE_DPAD_DOWN 1
@@ -103,19 +111,20 @@ jobs:
           snap "03_home_dock_scrolled" 1
 
           # --- 04-06: PROFILE SWITCHER (index 0) & SEARCH (index 1) ---
+          return_home 1
           reset_top_bar
           press KEYCODE_DPAD_CENTER 1
           snap "04_profile_switcher" 2
 
           press KEYCODE_DPAD_DOWN 1
           snap "05_profile_options" 1
-          press KEYCODE_BACK 1
+          return_home 2
 
           reset_top_bar
           press KEYCODE_DPAD_RIGHT 1
           press KEYCODE_DPAD_CENTER 1
           snap "06_search_screen" 2
-          press KEYCODE_BACK 2
+          return_home 3
 
           # --- 07-10: APPS TAB (index 4) & BROWSER TAB (index 5) ---
           reset_top_bar
@@ -126,6 +135,7 @@ jobs:
           press KEYCODE_DPAD_DOWN 2
           snap "08_apps_tab_scrolled" 2
 
+          return_home 2
           reset_top_bar
           press KEYCODE_DPAD_RIGHT 5
           press KEYCODE_DPAD_CENTER 1
@@ -134,8 +144,7 @@ jobs:
           press KEYCODE_DPAD_DOWN 1
           press KEYCODE_DPAD_CENTER 1
           snap "10_browser_active" 3
-
-          go_home
+          return_home 3
 
           # --- 11-12: APP GRID / WIDGETS (index 6) ---
           reset_top_bar
@@ -145,21 +154,21 @@ jobs:
 
           press KEYCODE_DPAD_DOWN 2
           snap "12_app_grid_scrolled" 2
-          press KEYCODE_BACK 1
+          return_home 3
 
           # --- 13-15: AI ASSISTANT (index 2 + direct launch) ---
           reset_top_bar
           press KEYCODE_DPAD_RIGHT 2
           press KEYCODE_DPAD_CENTER 1
           snap "13_ai_assistant_topbar" 4
+          return_home 3
 
           adb shell am start -n "$PKG/.RnaAiActivity" || true
           snap "14_ai_assistant_direct" 4
 
           press KEYCODE_DPAD_DOWN 1
           snap "15_ai_assistant_controls" 2
-
-          go_home
+          return_home 3
 
           # --- 16-23: CONTROL PANEL (index 7) & REMOTE REMAPPER ---
           reset_top_bar
@@ -172,9 +181,9 @@ jobs:
 
           press KEYCODE_DPAD_DOWN 3
           snap "18_control_panel_lower" 1
+          return_home 3
 
           # Navigate to Functions / Remapper: Left -> Down 7 -> Left 3 -> OK
-          go_home
           reset_top_bar
           press KEYCODE_DPAD_RIGHT 7
           press KEYCODE_DPAD_CENTER 1
@@ -189,14 +198,13 @@ jobs:
           press KEYCODE_DPAD_DOWN 4
           snap "21_control_panel_sidebar_bottom" 1
 
-          press KEYCODE_LEFT 3
+          press KEYCODE_DPAD_LEFT 3
           press KEYCODE_DPAD_CENTER 1
           snap "22_remapper_main" 3
 
           press KEYCODE_DPAD_DOWN 3
           snap "23_remapper_scrolled" 2
-
-          go_home
+          return_home 4
 
           # --- 24-25: CONTROLLER PAIRING (index 8) ---
           reset_top_bar
@@ -206,7 +214,7 @@ jobs:
 
           press KEYCODE_DPAD_DOWN 1
           snap "25_controller_options" 2
-          press KEYCODE_BACK 1
+          return_home 3
 
           # --- 26-30: WALLPAPERS (index 9) ---
           reset_top_bar
@@ -223,7 +231,9 @@ jobs:
 
           press KEYCODE_DPAD_CENTER 1
           snap "29_wallpaper_applied_1" 3
+          return_home 3
 
+          # Apply a second wallpaper for variety
           reset_top_bar
           press KEYCODE_DPAD_RIGHT 9
           press KEYCODE_DPAD_CENTER 1
@@ -232,6 +242,7 @@ jobs:
           press KEYCODE_DPAD_RIGHT 1
           press KEYCODE_DPAD_CENTER 1
           snap "30_wallpaper_applied_2" 3
+          return_home 3
 
           # --- 31-32: SETTINGS (index 10) ---
           reset_top_bar
@@ -241,6 +252,7 @@ jobs:
 
           press KEYCODE_DPAD_DOWN 4
           snap "32_settings_scrolled" 2
+          return_home 3
           EOF
           chmod +x capture.sh
 
