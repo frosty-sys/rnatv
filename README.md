@@ -74,6 +74,35 @@ Press the **Controls** button in the top bar of RNA. TV to open the Control Pane
 
 ---
 
+## 🧪 Testing
+
+RNA. TV is primarily tested on Android TV and Google TV devices. When submitting changes, verify the relevant features on a physical or emulated Android TV environment:
+
+* Run unit tests with Android Studio or Gradle.
+* Test navigation with both D-Pad and touch input.
+* Verify remote button remapping and launcher behavior.
+* Test profile switching and browser data isolation.
+* Confirm AI, overlays, accessibility, and permission flows.
+* Build and install the release APK before submitting a pull request.
+* Include test device details and Android/Google TV versions in your pull request.
+
+---
+
+## 📂 Project Structure
+
+* **`app/`** — Android application source, resources, metadata, and build configuration.
+* **`app/src/main/java/`** — Kotlin application code.
+* **`app/src/main/res/`** — Layout-independent Android resources.
+* **`app/src/main/res/drawable/`** — Icons, banners, wallpapers, and drawable assets.
+* **`app/metadata/`** — Store metadata, screenshots, and release assets.
+* **`assets/`** — Repository-level images and documentation assets.
+* **`gradle/`** — Gradle wrapper configuration and build tooling.
+* **`CONTRIBUTING.md`** — Contribution guidelines.
+* **`LICENSE`** — GNU General Public License v3.0.
+* **`README.md`** — Project overview and setup instructions.
+
+---
+
 ## 🤝 Contributing
 
 Contributions, bug reports, and feature requests are welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines before submitting a pull request or opening an issue.
