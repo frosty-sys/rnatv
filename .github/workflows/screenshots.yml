@@ -11,17 +11,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v6
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Build GitHub Debug APK
-        run: gradle assembleGithubDebug --stacktrace
+      - name: Download Latest GitHub APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p downloaded-apk
+          gh release download --pattern "*-github.apk" --dir downloaded-apk
+          ls -la downloaded-apk
 
       - name: Run TV Emulator and Capture Screenshots
         uses: reactivecircus/android-emulator-runner@v2
@@ -66,8 +62,8 @@ jobs:
               sleep 3
             }
 
-            # Find built debug APK and auto-detect package name
-            APK_PATH=$(find app/build/outputs/apk/github/debug -name "*.apk" | head -n 1)
+            # Find downloaded APK and auto-detect package name
+            APK_PATH=$(find downloaded-apk -name "*.apk" | head -n 1)
             BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
             PKG=$("$BUILD_TOOLS/aapt2" dump packagename "$APK_PATH")
 
