@@ -23,13 +23,15 @@
 
 ## 📸 Screenshots
 
-| Home Screen | Control Panel |
+| Home Screen | Search |
 | :---: | :---: |
-| ![Home Screen](app/src/main/res/drawable/ic_tv_banner2.png) | ![Control Panel](app/src/main/res/drawable/ic_tv_banner2.png) |
+| ![Home Screen](app/src/main/res/drawable/ic_tv_banner2.png) | ![Search](assets/screenshots/search.png) |
 
-| RNA. AI Assistant | Search |
+<!--
+| RNA. AI Assistant | Control Panel |
 | :---: | :---: |
-| ![RNA. AI Assistant](assets/screenshots/ai-assistant.png) | ![Remote Remapper](assets/screenshots/search.png) |
+| ![RNA. AI Assistant](assets/screenshots/ai-assistant.png) | ![Control Panel](assets/screenshots/search.png) |
+-->
 
 | File Explorer | Setup Wizard |
 | :---: | :---: |
