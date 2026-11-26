@@ -74,13 +74,13 @@ To install and configure **RNA. TV** on your Android TV or Google TV device, fol
 2. On your **Android Phone / Tablet**, open the Google Play Store, search for **"Send Files to TV" (SFTV)**, and install the companion app.
 
 #### Step 2: Transfer the APK File to Your TV
-1. Download the latest RNA. TV installation APK (`RNA_vX.X.X-github.apk`) on your phone from the [Latest Release](https://github.com/frosty-sys/rnatv/releases/latest) page.
+1. Download the latest RNA. TV installation APK (`RNA_vX.X-github.apk`) on your phone from the [Latest Release](https://github.com/frosty-sys/rnatv/releases/latest) page.
 2. Open **Send Files to TV** on both your TV (select **Receive**) and your phone (select **Send**).
-3. Select the downloaded `RNA_vX.X.X-github.apk` file on your phone and choose your TV to transfer the file wirelessly over your local Wi-Fi network.
+3. Select the downloaded `RNA_vX.X-github.apk` file on your phone and choose your TV to transfer the file wirelessly over your local Wi-Fi network.
 
 #### Step 3: Install the App on Your TV
 1. On your TV, open your file manager (or the File Explorer inside SFTV / Downloads).
-2. Click on the transferred `RNA_vX.X.X-github.apk` file.
+2. Click on the transferred `RNA_vX.X-github.apk` file.
 3. When prompted by Android Security, allow installation from unknown sources for your file manager, then click **Install**.
 
 #### Step 4: Grant Accessibility Permission *(Crucial for TV Home Button Interception)*
@@ -99,13 +99,13 @@ Download the latest `-github` APK from the [Latest Release](https://github.com/f
 
 ```bash
 adb connect <TV_IP_ADDRESS>:5555
-adb install RNA_vX.X.X-github.apk
+adb install RNA_vX.X-github.apk
 ```
 
 If RNA. TV is already installed, update it with:
 
 ```bash
-adb install -r RNA_vX.X.X-github.apk
+adb install -r RNA_vX.X-github.apk
 ```
 
 ---
@@ -115,7 +115,11 @@ adb install -r RNA_vX.X.X-github.apk
 To use your phone as a remote or gamepad bridge over local Wi-Fi:
 
 1. Ensure both your TV and phone are connected to the same local Wi-Fi network.
-2. Open **RNA. Controller** from the TV's Control Panel / Functions tab and follow the on-screen pairing prompt (QR code / local URL) from your phone.
+2. Install the **same RNA_vX.X-github.apk** on your phone (it automatically adapts to a dedicated mobile UI).
+3. On your TV, open **RNA. Controller** from the **Control Panel → Functions** tab.
+4. On your phone, open the **RNA.** app, tap the **Remote** button, and enter either the **4-digit pairing code** or the **TV IP address** displayed on the TV screen.
+
+> **One-time setup:** After pairing once, simply open the RNA. app on your phone whenever your TV is powered on and connected to the same Wi-Fi network to use the remote or Xbox/Android gamepad bridge instantly.
 
 ---
 
