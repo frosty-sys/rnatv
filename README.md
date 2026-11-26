@@ -27,13 +27,13 @@
 | :---: | :---: |
 | ![Home Screen](app/src/main/res/drawable/ic_tv_banner2.png) | ![Control Panel](app/src/main/res/drawable/ic_tv_banner2.png) |
 
-| RNA. AI Assistant | Remote Remapper |
+| RNA. AI Assistant | Search |
 | :---: | :---: |
-| ![RNA. AI Assistant](assets/screenshots/ai-assistant.png) | ![Remote Remapper](assets/screenshots/remapper.png) |
+| ![RNA. AI Assistant](assets/screenshots/ai-assistant.png) | ![Remote Remapper](assets/screenshots/search.png) |
 
 | File Explorer | Setup Wizard |
 | :---: | :---: |
-| ![RNA. AI Assistant](assets/screenshots/file.png) | ![Remote Remapper](assets/screenshots/setup.png) |
+| ![File Explorer](assets/screenshots/file.png) | ![setup wizard](assets/screenshots/setup.png) |
 
 ---
 
