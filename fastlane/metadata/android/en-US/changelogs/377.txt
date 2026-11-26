@@ -1,0 +1,6 @@
+RNA. TV 3.7.7 (versionCode 377)
+
+• Added the GitHub distribution build with in-app update support.
+• Updated the Android application package name for this release.
+• Reduced the packaged application size.
+• Prepared a separate F-Droid distribution build; updates for that build are handled by F-Droid or a compatible store.

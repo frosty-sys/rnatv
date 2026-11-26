@@ -1,12 +1,22 @@
-RNA. TV is a fast, open-source Android TV launcher, D-pad web browser, AI assistant, and local Wi-Fi phone remote designed for living-room screens.
+RNA. TV is a fast, open-source launcher and app runtime designed for Android TV and Google TV. It brings your apps, web browsing, AI tools, and phone remote together on your television, with D-Pad-first navigation and local profiles.
 
-Key Features:
+FEATURES
 
-- Custom Android TV Launcher: Clean, distraction-free home screen with customizable 1-row and 2-row favorites, All Apps drawer, multi-profile support, boot launch control, and instant app switching.
-- D-Pad Web Browser & Media Hub: Full-screen TV web browser with built-in ad and tracker blocking, spatial remote navigation, virtual cursor mode, bookmarks, and quick YouTube search with voice input.
-- Multi-Provider AI Assistant & Router: Built-in AI chat, EdVanced voice assistant, and smart TV search backed by free keyless open AI providers with adaptive per-device reliability routing, per-provider toggles, and optional user-supplied Gemini API key support over standard HTTPS.
-- Autonomous AI Screen Agent: Optional accessibility-assisted TV agent that helps navigate apps and complete multi-step tasks hands-free with a live on-screen status HUD.
-- Unified TV Keyboard: Custom Jetpack Compose D-pad keyboard available both inside RNA. TV and as a system-wide Android TV IME.
-- Local Wi-Fi Phone Remote: Pair your phone over your local network using a 4-digit pairing code or IP address for touchpad control, D-pad navigation, text entry, voice input, and quick shortcuts.
-- Control Panel & Diagnostics: Built-in 4K streaming internet speed test, network status, triggers and macros, and full device customization.
-- 100% Free & Open Source: Built with zero Google Play Services or proprietary Firebase dependencies.
+• TV launcher: Customize one-row or two-row app docks, browse installed apps, switch between recent apps, and use multiple offline profiles.
+• Remote remapping: Assign single, double, triple, and long button presses to supported apps and actions.
+• TV browser: Browse with a D-Pad-friendly on-screen keyboard, full-screen mode, bookmarks, and website shortcuts. Browser behavior and content depend on the sites you visit.
+• AI assistant: Access AI chat and supported assistant actions, with free keyless provider options and optional user-provided keys. AI availability depends on the selected provider and network connection.
+• Phone controller: Pair a phone with the TV over the same local Wi-Fi network for remote, D-Pad, text-entry, and gamepad-style controls.
+• Wallpapers: Choose from 43+ bundled 4K wallpapers, your own photos, and supported live wallpapers.
+• TV keyboard: Use the built-in D-Pad keyboard, including its system keyboard service where supported.
+• Control Panel: Configure launcher behavior, performance mode, updates, sleep timers, blue-light warmth, and other supported settings.
+
+PRIVACY AND PERMISSIONS
+
+Profiles, preferences, and supported app data are stored locally on the device. Some features require permissions such as Accessibility, Display over other apps, Usage Access, media access, or permission to install updates. Network access is used for browsing, downloads, updates, phone-controller communication, and online AI providers. Use of third-party websites and AI services is subject to their own terms and privacy policies.
+
+REQUIREMENTS
+
+Android 10 (API 29) or later is the project's documented minimum. Some features and settings vary by device, Android version, and TV manufacturer. A D-Pad remote is recommended. An internet connection is needed for online features; local launcher features can be used offline.
+
+RNA. TV is free and open source under the GNU General Public License v3.0. See the project repository for source code, installation instructions, and support.
