@@ -25,6 +25,201 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Create Screenshot Script
+        run: |
+          cat << 'EOF' > capture.sh
+          #!/usr/bin/env bash
+          set -e
+          mkdir -p assets/screenshots
+
+          press() {
+            local key=$1
+            local count=${2:-1}
+            for ((i=0; i<count; i++)); do
+              adb shell input keyevent "$key"
+              sleep 0.35
+            done
+          }
+
+          snap() {
+            local name=$1
+            local wait_sec=${2:-2}
+            sleep "$wait_sec"
+            adb exec-out screencap -p > "assets/screenshots/${name}.png"
+            echo "Captured: ${name}.png"
+          }
+
+          reset_top_bar() {
+            press KEYCODE_DPAD_UP 2
+            press KEYCODE_DPAD_LEFT 6
+          }
+
+          go_home() {
+            adb shell monkey -p "$PKG" -c android.intent.category.LEANBACK_LAUNCHER 1 || \
+              adb shell am start -n "$PKG/.MainActivity"
+            sleep 3
+          }
+
+          APK_PATH=$(find downloaded-apk -name "*.apk" | head -n 1)
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
+          PKG=$("$BUILD_TOOLS/aapt2" dump packagename "$APK_PATH")
+
+          echo "Installing: $APK_PATH (Package: $PKG)"
+          adb install -r "$APK_PATH"
+
+          # --- 01-03: HOME SCREEN & FAVORITES DOCK ---
+          go_home
+          snap "01_home" 5
+
+          press KEYCODE_DPAD_DOWN 1
+          press KEYCODE_DPAD_RIGHT 2
+          snap "02_home_dock_focus" 1
+
+          press KEYCODE_DPAD_RIGHT 4
+          snap "03_home_dock_scrolled" 1
+
+          # --- 04-06: PROFILE SWITCHER (index 0) & SEARCH (index 1) ---
+          reset_top_bar
+          press KEYCODE_DPAD_CENTER 1
+          snap "04_profile_switcher" 2
+
+          press KEYCODE_DPAD_DOWN 1
+          snap "05_profile_options" 1
+          press KEYCODE_BACK 1
+
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 1
+          press KEYCODE_DPAD_CENTER 1
+          snap "06_search_screen" 2
+          press KEYCODE_BACK 1
+
+          # --- 07-10: APPS TAB (index 4) & BROWSER TAB (index 5) ---
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 4
+          press KEYCODE_DPAD_CENTER 1
+          snap "07_apps_tab" 2
+
+          press KEYCODE_DPAD_DOWN 2
+          snap "08_apps_tab_scrolled" 2
+
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 5
+          press KEYCODE_DPAD_CENTER 1
+          snap "09_browser_tab" 3
+
+          press KEYCODE_DPAD_DOWN 1
+          press KEYCODE_DPAD_CENTER 1
+          snap "10_browser_active" 3
+
+          go_home
+
+          # --- 11-12: APP GRID / WIDGETS (index 6) ---
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 6
+          press KEYCODE_DPAD_CENTER 1
+          snap "11_app_grid" 2
+
+          press KEYCODE_DPAD_DOWN 2
+          snap "12_app_grid_scrolled" 2
+          press KEYCODE_BACK 1
+
+          # --- 13-15: AI ASSISTANT (index 2 + direct launch) ---
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 2
+          press KEYCODE_DPAD_CENTER 1
+          snap "13_ai_assistant_topbar" 4
+
+          adb shell am start -n "$PKG/.RnaAiActivity" || true
+          snap "14_ai_assistant_direct" 4
+
+          press KEYCODE_DPAD_DOWN 1
+          snap "15_ai_assistant_controls" 2
+
+          go_home
+
+          # --- 16-23: CONTROL PANEL (index 7) & REMOTE REMAPPER ---
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 7
+          press KEYCODE_DPAD_CENTER 1
+          snap "16_control_panel_main" 3
+
+          press KEYCODE_DPAD_DOWN 2
+          snap "17_control_panel_mid" 1
+
+          press KEYCODE_DPAD_DOWN 3
+          snap "18_control_panel_lower" 1
+
+          # Navigate to Functions / Remapper: Left -> Down 7 -> Left 3 -> OK
+          go_home
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 7
+          press KEYCODE_DPAD_CENTER 1
+          sleep 2
+
+          press KEYCODE_DPAD_LEFT 1
+          snap "19_control_panel_sidebar" 1
+
+          press KEYCODE_DPAD_DOWN 3
+          snap "20_control_panel_sidebar_mid" 1
+
+          press KEYCODE_DPAD_DOWN 4
+          snap "21_control_panel_sidebar_bottom" 1
+
+          press KEYCODE_DPAD_LEFT 3
+          press KEYCODE_DPAD_CENTER 1
+          snap "22_remapper_main" 3
+
+          press KEYCODE_DPAD_DOWN 3
+          snap "23_remapper_scrolled" 2
+
+          go_home
+
+          # --- 24-25: CONTROLLER PAIRING (index 8) ---
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 8
+          press KEYCODE_DPAD_CENTER 1
+          snap "24_controller_pairing" 3
+
+          press KEYCODE_DPAD_DOWN 1
+          snap "25_controller_options" 2
+          press KEYCODE_BACK 1
+
+          # --- 26-30: WALLPAPERS (index 9) ---
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 9
+          press KEYCODE_DPAD_CENTER 1
+          snap "26_wallpapers_picker" 3
+
+          press KEYCODE_DPAD_RIGHT 2
+          snap "27_wallpapers_row1" 2
+
+          press KEYCODE_DPAD_DOWN 1
+          press KEYCODE_DPAD_RIGHT 2
+          snap "28_wallpapers_row2" 2
+
+          press KEYCODE_DPAD_CENTER 1
+          snap "29_wallpaper_applied_1" 3
+
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 9
+          press KEYCODE_DPAD_CENTER 1
+          sleep 2
+          press KEYCODE_DPAD_DOWN 2
+          press KEYCODE_DPAD_RIGHT 1
+          press KEYCODE_DPAD_CENTER 1
+          snap "30_wallpaper_applied_2" 3
+
+          # --- 31-32: SETTINGS (index 10) ---
+          reset_top_bar
+          press KEYCODE_DPAD_RIGHT 10
+          press KEYCODE_DPAD_CENTER 1
+          snap "31_settings_main" 3
+
+          press KEYCODE_DPAD_DOWN 4
+          snap "32_settings_scrolled" 2
+          EOF
+          chmod +x capture.sh
+
       - name: Run TV Emulator and Capture Screenshots
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -34,200 +229,7 @@ jobs:
           profile: tv_1080p
           disable-linux-hw-accel: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-metrics
-          script: |
-            mkdir -p assets/screenshots
-
-            # Helper: press a D-Pad key N times
-            press() {
-              local key=$1
-              local count=${2:-1}
-              for ((i=0; i<count; i++)); do
-                adb shell input keyevent "$key"
-                sleep 0.35
-              done
-            }
-
-            # Helper: wait and capture screenshot
-            snap() {
-              local name=$1
-              local wait_sec=${2:-2}
-              sleep "$wait_sec"
-              adb exec-out screencap -p > "assets/screenshots/${name}.png"
-              echo "Captured: ${name}.png"
-            }
-
-            # Helper: move to top bar and pin focus to index 0 (Profile)
-            reset_top_bar() {
-              press KEYCODE_DPAD_UP 2
-              press KEYCODE_DPAD_LEFT 6
-            }
-
-            # Helper: return to MainActivity
-            go_home() {
-              adb shell monkey -p "$PKG" -c android.intent.category.LEANBACK_LAUNCHER 1 || \
-                adb shell am start -n "$PKG/.MainActivity"
-              sleep 3
-            }
-
-            # Find downloaded APK and auto-detect package name
-            APK_PATH=$(find downloaded-apk -name "*.apk" | head -n 1)
-            BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
-            PKG=$("$BUILD_TOOLS/aapt2" dump packagename "$APK_PATH")
-
-            echo "Installing: $APK_PATH (Package: $PKG)"
-            adb install -r "$APK_PATH"
-
-            # --- 01-03: HOME SCREEN & FAVORITES DOCK ---
-            go_home
-            snap "01_home" 5
-
-            press KEYCODE_DPAD_DOWN 1
-            press KEYCODE_DPAD_RIGHT 2
-            snap "02_home_dock_focus" 1
-
-            press KEYCODE_DPAD_RIGHT 4
-            snap "03_home_dock_scrolled" 1
-
-            # --- 04-06: PROFILE SWITCHER (index 0) & SEARCH (index 1) ---
-            reset_top_bar
-            press KEYCODE_DPAD_CENTER 1
-            snap "04_profile_switcher" 2
-
-            press KEYCODE_DPAD_DOWN 1
-            snap "05_profile_options" 1
-            press KEYCODE_BACK 1
-
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 1
-            press KEYCODE_DPAD_CENTER 1
-            snap "06_search_screen" 2
-            press KEYCODE_BACK 1
-
-            # --- 07-10: APPS TAB (index 4) & BROWSER TAB (index 5) ---
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 4
-            press KEYCODE_DPAD_CENTER 1
-            snap "07_apps_tab" 2
-
-            press KEYCODE_DPAD_DOWN 2
-            snap "08_apps_tab_scrolled" 2
-
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 5
-            press KEYCODE_DPAD_CENTER 1
-            snap "09_browser_tab" 3
-
-            press KEYCODE_DPAD_DOWN 1
-            press KEYCODE_DPAD_CENTER 1
-            snap "10_browser_active" 3
-
-            go_home
-
-            # --- 11-12: APP GRID / WIDGETS (index 6) ---
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 6
-            press KEYCODE_DPAD_CENTER 1
-            snap "11_app_grid" 2
-
-            press KEYCODE_DPAD_DOWN 2
-            snap "12_app_grid_scrolled" 2
-            press KEYCODE_BACK 1
-
-            # --- 13-15: AI ASSISTANT (index 2 + direct launch) ---
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 2
-            press KEYCODE_DPAD_CENTER 1
-            snap "13_ai_assistant_topbar" 4
-
-            adb shell am start -n "$PKG/.RnaAiActivity" || true
-            snap "14_ai_assistant_direct" 4
-
-            press KEYCODE_DPAD_DOWN 1
-            snap "15_ai_assistant_controls" 2
-
-            go_home
-
-            # --- 16-23: CONTROL PANEL (index 7) & REMOTE REMAPPER ---
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 7
-            press KEYCODE_DPAD_CENTER 1
-            snap "16_control_panel_main" 3
-
-            press KEYCODE_DPAD_DOWN 2
-            snap "17_control_panel_mid" 1
-
-            press KEYCODE_DPAD_DOWN 3
-            snap "18_control_panel_lower" 1
-
-            # Navigate to Functions / Remapper: Left -> Down 7 -> Left 3 -> OK
-            go_home
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 7
-            press KEYCODE_DPAD_CENTER 1
-            sleep 2
-
-            press KEYCODE_DPAD_LEFT 1
-            snap "19_control_panel_sidebar" 1
-
-            press KEYCODE_DPAD_DOWN 3
-            snap "20_control_panel_sidebar_mid" 1
-
-            press KEYCODE_DPAD_DOWN 4
-            snap "21_control_panel_sidebar_bottom" 1
-
-            press KEYCODE_DPAD_LEFT 3
-            press KEYCODE_DPAD_CENTER 1
-            snap "22_remapper_main" 3
-
-            press KEYCODE_DPAD_DOWN 3
-            snap "23_remapper_scrolled" 2
-
-            go_home
-
-            # --- 24-25: CONTROLLER PAIRING (index 8) ---
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 8
-            press KEYCODE_DPAD_CENTER 1
-            snap "24_controller_pairing" 3
-
-            press KEYCODE_DPAD_DOWN 1
-            snap "25_controller_options" 2
-            press KEYCODE_BACK 1
-
-            # --- 26-30: WALLPAPERS (index 9) ---
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 9
-            press KEYCODE_DPAD_CENTER 1
-            snap "26_wallpapers_picker" 3
-
-            press KEYCODE_DPAD_RIGHT 2
-            snap "27_wallpapers_row1" 2
-
-            press KEYCODE_DPAD_DOWN 1
-            press KEYCODE_DPAD_RIGHT 2
-            snap "28_wallpapers_row2" 2
-
-            press KEYCODE_DPAD_CENTER 1
-            snap "29_wallpaper_applied_1" 3
-
-            # Apply a second wallpaper for variety
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 9
-            press KEYCODE_DPAD_CENTER 1
-            sleep 2
-            press KEYCODE_DPAD_DOWN 2
-            press KEYCODE_DPAD_RIGHT 1
-            press KEYCODE_DPAD_CENTER 1
-            snap "30_wallpaper_applied_2" 3
-
-            # --- 31-32: SETTINGS (index 10) ---
-            reset_top_bar
-            press KEYCODE_DPAD_RIGHT 10
-            press KEYCODE_DPAD_CENTER 1
-            snap "31_settings_main" 3
-
-            press KEYCODE_DPAD_DOWN 4
-            snap "32_settings_scrolled" 2
+          script: bash capture.sh
 
       - name: Upload Screenshots
         uses: actions/upload-artifact@v7
