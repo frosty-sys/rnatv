@@ -341,7 +341,7 @@ To return to the original launcher:
 
 1. Open **Control Panel**.
 2. Find the current home/launcher settings.
-3. Toggle **`set RNA. TV as default launcher over stock launcher`** off.
+3. Toggle **`set RNA. TV as default launcher`** off.
 4. Disable the RNA. TV Accessibility service if it is no longer needed.
 5. Uninstall RNA. TV only if you no longer want to keep it installed.
 
