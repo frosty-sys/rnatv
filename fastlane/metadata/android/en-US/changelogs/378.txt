@@ -1,0 +1,4 @@
+RNA. TV 3.7.8 (versionCode 378)
+
+• Added a compact PPSSPP toggle in Xbox Controller mode that remaps buttons and analog movement to PPSSPP's built-in controls without Accessibility or Back interference.
+• Redesigned Portrait TV Remote mode with a cleaner, less cluttered layout, circular D-Pad wheel, slim volume bar, unified utility dock, and compact TV app shortcuts.

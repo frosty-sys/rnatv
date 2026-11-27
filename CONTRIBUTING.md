@@ -15,7 +15,7 @@ Please keep all discussions, issues, and code reviews respectful, constructive, 
 Before opening a new issue, please search existing [Issues](https://github.com/frosty-sys/rnatv/issues) to avoid duplicates. When submitting a bug report, please include:
 
 * **Device & OS Details:** TV model or streaming box (e.g., Chromecast with Google TV, Nvidia Shield, Mi Box, Sony Bravia) and Android TV version (Android 10+).
-* **App Version:** The exact release tag (e.g., `v3.7.7`) or commit hash.
+* **App Version:** The exact release tag (e.g., `v3.7.8`) or commit hash.
 * **Steps to Reproduce:** Clear step-by-step instructions (including whether Accessibility Service or RNA. Keyboard IME was active).
 * **Expected vs. Actual Behavior:** What you expected to happen and what actually occurred.
 * **Logs / Screenshots:** Relevant `adb logcat` snippets or screenshots/photos of the TV screen if applicable.
