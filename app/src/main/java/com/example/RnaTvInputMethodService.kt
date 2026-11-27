@@ -523,9 +523,58 @@ class RnaTvInputMethodService : InputMethodService() {
         ) == true
     }
 
+    private val heldKeyDownTimes = java.util.concurrent.ConcurrentHashMap<Int, Long>()
+
     fun injectHardwareKeyEvent(keyCode: Int, isGamepad: Boolean = false): Boolean {
         if (!RnaKeyLinksRegistry.isControllerOverKeyboardImeEnabled(this)) return false
         return dispatchControllerButtonKey(keyCode)
+    }
+
+    /**
+     * Dispatches a true held ACTION_DOWN or ACTION_UP hardware KeyEvent via InputConnection.
+     * Used by PPSSPP mode so players can hold buttons (Cross/Circle/L/R/D-Pad/Analog I-J-K-L)
+     * smoothly without premature 15ms auto-releases.
+     */
+    fun injectHardwareKeyAction(
+        keyCode: Int,
+        isDown: Boolean,
+        isGamepad: Boolean = false,
+        bypassImeToggle: Boolean = false
+    ): Boolean {
+        if (!bypassImeToggle && !RnaKeyLinksRegistry.isControllerOverKeyboardImeEnabled(this)) return false
+        val ic = currentInputConnection ?: return false
+        return try {
+            val now = SystemClock.uptimeMillis()
+            val downTime = if (isDown) {
+                heldKeyDownTimes[keyCode] = now
+                now
+            } else {
+                heldKeyDownTimes.remove(keyCode) ?: now
+            }
+            val source = when {
+                isGamepad -> InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_KEYBOARD
+                keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+                    keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+                    keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+                    keyCode == KeyEvent.KEYCODE_DPAD_RIGHT -> InputDevice.SOURCE_DPAD or InputDevice.SOURCE_KEYBOARD
+                else -> InputDevice.SOURCE_KEYBOARD
+            }
+            val ev = KeyEvent(
+                downTime,
+                now,
+                if (isDown) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP,
+                keyCode,
+                0,
+                0,
+                KeyCharacterMap.VIRTUAL_KEYBOARD,
+                0,
+                KeyEvent.FLAG_FROM_SYSTEM,
+                source
+            )
+            ic.sendKeyEvent(ev)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun commitRemoteText(text: String): Boolean {

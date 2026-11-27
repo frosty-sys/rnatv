@@ -116,7 +116,8 @@ data class XboxGamepadFrame(
     val axisLTrigger: Float = 0f,
     val axisRTrigger: Float = 0f,
     val axisHatX: Float = 0f,
-    val axisHatY: Float = 0f
+    val axisHatY: Float = 0f,
+    val isPpssppMode: Boolean = false
 ) {
     fun isButtonDown(bitIndex: Int): Boolean = (buttonBitmask and (1 shl bitIndex)) != 0
 }
@@ -158,6 +159,37 @@ object XboxButtonBits {
         BIT_DPAD_RIGHT to KeyEvent.KEYCODE_DPAD_RIGHT,
         BIT_LT to KeyEvent.KEYCODE_BUTTON_L2,
         BIT_RT to KeyEvent.KEYCODE_BUTTON_R2
+    )
+
+    // Canonical PPSSPP built-in default keyboard keycodes (Core/KeyMapDefaults.cpp):
+    // Works out-of-the-box with PPSSPP on Android TV via IME sendKeyEvent / KeyEvent without duplicate bindings
+    // or Accessibility Back/Click interference.
+    val bitToPpssppKeyCode: Map<Int, Int> = mapOf(
+        BIT_A to KeyEvent.KEYCODE_Z,           // PSP Cross (×)
+        BIT_B to KeyEvent.KEYCODE_X,           // PSP Circle (○)
+        BIT_X to KeyEvent.KEYCODE_A,           // PSP Square (□)
+        BIT_Y to KeyEvent.KEYCODE_S,           // PSP Triangle (△)
+        BIT_LB to KeyEvent.KEYCODE_Q,          // PSP L Shoulder
+        BIT_RB to KeyEvent.KEYCODE_W,          // PSP R Shoulder
+        BIT_START to KeyEvent.KEYCODE_SPACE,   // PSP START
+        BIT_SELECT to KeyEvent.KEYCODE_V,      // PSP SELECT
+        BIT_DPAD_UP to KeyEvent.KEYCODE_DPAD_UP,
+        BIT_DPAD_DOWN to KeyEvent.KEYCODE_DPAD_DOWN,
+        BIT_DPAD_LEFT to KeyEvent.KEYCODE_DPAD_LEFT,
+        BIT_DPAD_RIGHT to KeyEvent.KEYCODE_DPAD_RIGHT,
+        BIT_LT to KeyEvent.KEYCODE_ESCAPE,     // PPSSPP Pause / Menu
+        BIT_RT to KeyEvent.KEYCODE_TAB,        // PPSSPP Fast-Forward (Hold)
+        BIT_THUMBL to KeyEvent.KEYCODE_F2,     // PPSSPP Quick Save State
+        BIT_THUMBR to KeyEvent.KEYCODE_F4,     // PPSSPP Quick Load State
+        BIT_MODE to KeyEvent.KEYCODE_BUTTON_MODE
+    )
+
+    // PPSSPP built-in Analog Stick keyboard directions (Up=I, Down=K, Left=J, Right=L)
+    val ppssppAnalogDirKeyCodes: IntArray = intArrayOf(
+        KeyEvent.KEYCODE_I,
+        KeyEvent.KEYCODE_K,
+        KeyEvent.KEYCODE_J,
+        KeyEvent.KEYCODE_L
     )
 
     // Generic hardware gamepad buttons (BUTTON_1 .. BUTTON_16) recognized by PPSSPP, RetroArch, and TV Quick Actions Pro
@@ -286,6 +318,7 @@ object RnaControllerNetworkBridge {
 
     private val previousSlotFrames = ConcurrentHashMap<Int, XboxGamepadFrame>()
     private val lastAnalogNavTimestamp = ConcurrentHashMap<Int, Long>()
+    private val previousPpssppAnalogMask = ConcurrentHashMap<Int, Int>()
 
     private fun extractValidIpv4Octet(ip: String?): Int? {
         if (ip.isNullOrBlank() || ip == "127.0.0.1" || ip == "Detecting...") return null
@@ -535,7 +568,7 @@ object RnaControllerNetworkBridge {
             }
 
             msg.startsWith("GP|") -> {
-                // Zero-lag Gamepad frame: GP|<deviceId>|<slot>|<bitmask>|<lx>|<ly>|<rx>|<ry>|<lt>|<rt>|<hatX>|<hatY>
+                // Zero-lag Gamepad frame: GP|<deviceId>|<slot>|<bitmask>|<lx>|<ly>|<rx>|<ry>|<lt>|<rt>|<hatX>|<hatY>[|<ppssppFlag>]
                 val parts = msg.split("|")
                 if (parts.size >= 12) {
                     val deviceId = parts[1]
@@ -549,6 +582,7 @@ object RnaControllerNetworkBridge {
                     val rt = parts[9].toFloatOrNull() ?: 0f
                     val hatX = parts[10].toFloatOrNull() ?: 0f
                     val hatY = parts[11].toFloatOrNull() ?: 0f
+                    val isPpssppMode = parts.getOrNull(12) == "1"
 
                     val frame = XboxGamepadFrame(
                         slot = slot,
@@ -560,9 +594,14 @@ object RnaControllerNetworkBridge {
                         axisLTrigger = lt.coerceIn(0f, 1f),
                         axisRTrigger = rt.coerceIn(0f, 1f),
                         axisHatX = hatX.coerceIn(-1f, 1f),
-                        axisHatY = hatY.coerceIn(-1f, 1f)
+                        axisHatY = hatY.coerceIn(-1f, 1f),
+                        isPpssppMode = isPpssppMode
                     )
-                    touchControllerActivity(deviceId, senderIp, "Xbox Gamepad #$slot Active")
+                    touchControllerActivity(
+                        deviceId,
+                        senderIp,
+                        if (isPpssppMode) "PPSSPP Pad #$slot Active" else "Xbox Gamepad #$slot Active"
+                    )
                     dispatchSpoofedXboxGamepadFrameOnTv(frame)
                 }
             }
@@ -1176,6 +1215,61 @@ object RnaControllerNetworkBridge {
     // ANDROID XBOX CONTROLLER SPOOFER (PLAYER 1 = DEVICE 1001, PLAYER 2 = DEVICE 1002)
     // ══════════════════════════════════════════════════════════════════════════════
 
+    private fun dispatchPpssppKeyActionOnTv(
+        keyCode: Int,
+        isDown: Boolean,
+        now: Long,
+        spoofedDeviceId: Int,
+        fgAct: Activity?,
+        ime: com.example.RnaTvInputMethodService?
+    ) {
+        val action = if (isDown) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP
+        val isDpad = keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+            keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+            keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
+            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+        val source = if (isDpad) {
+            InputDevice.SOURCE_DPAD or InputDevice.SOURCE_KEYBOARD
+        } else {
+            InputDevice.SOURCE_KEYBOARD
+        }
+
+        val keyEvent = KeyEvent(
+            now,
+            now,
+            action,
+            keyCode,
+            0,
+            0,
+            spoofedDeviceId,
+            0,
+            KeyEvent.FLAG_FROM_SYSTEM,
+            source
+        )
+
+        if (fgAct != null) {
+            runCatching {
+                val handled = fgAct.window?.superDispatchKeyEvent(keyEvent) ?: false
+                if (!handled) {
+                    fgAct.dispatchKeyEvent(keyEvent)
+                }
+            }
+        } else {
+            // Deliver a single clean, holdable ACTION_DOWN / ACTION_UP KeyEvent to PPSSPP.
+            // Never trigger AccessibilityService Back/Click/Scroll so Circle/Select/L/R never exit PPSSPP.
+            val imeHandled = ime?.injectHardwareKeyAction(
+                keyCode = keyCode,
+                isDown = isDown,
+                isGamepad = false,
+                bypassImeToggle = true
+            ) == true
+            injectInputEventViaInputManager(keyEvent)
+            if (!imeHandled && isDown) {
+                dispatchShellInputKeyEventAsync(keyCode)
+            }
+        }
+    }
+
     fun dispatchSpoofedXboxGamepadFrameOnTv(rawFrame: XboxGamepadFrame) {
         val slot = rawFrame.slot.coerceIn(1, 2)
         // Ensure analog triggers LT/RT also set BIT_LT (KEYCODE_BUTTON_L2) and BIT_RT (KEYCODE_BUTTON_R2)
@@ -1204,101 +1298,196 @@ object RnaControllerNetworkBridge {
             val ime = com.example.RnaTvInputMethodService.instance
             val now = SystemClock.uptimeMillis()
 
-            // 1. Diff all 17 Xbox buttons and emit BOTH their custom/Xbox keycode AND generic BUTTON_1..16 keycode!
-            for ((bitIndex, defaultKeyCode) in XboxButtonBits.bitToKeyCode) {
-                val wasDown = prevFrame.isButtonDown(bitIndex)
-                val isDown = newFrame.isButtonDown(bitIndex)
-                if (wasDown != isDown) {
-                    val action = if (isDown) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP
-
-                    if (defaultKeyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
-                        if (isDown) {
-                            KeyRemapperBridge.notifyNavigateToHomeTabInMainActivity()
-                            if (fgAct != null && fgAct.javaClass.simpleName == "MainActivity") {
-                                onRemoteNavigateHome?.invoke()
-                            } else if (service != null) {
-                                service.launchRnaTvHomeFromService()
-                            } else {
-                                onRemoteNavigateHome?.invoke()
-                            }
-                        }
-                        continue
-                    }
-
-                    val effectiveKeyCodes = RnaKeyLinksRegistry.getEffectiveKeyCodesForBit(ctx, bitIndex)
-                    for (keyCode in effectiveKeyCodes) {
-                        val source = if (keyCode in listOf(
-                                KeyEvent.KEYCODE_DPAD_UP,
-                                KeyEvent.KEYCODE_DPAD_DOWN,
-                                KeyEvent.KEYCODE_DPAD_LEFT,
-                                KeyEvent.KEYCODE_DPAD_RIGHT
-                            )
-                        ) {
-                            InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD or InputDevice.SOURCE_JOYSTICK
-                        } else {
-                            InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_JOYSTICK or InputDevice.SOURCE_KEYBOARD
-                        }
-
-                        val keyEvent = KeyEvent(
-                            now,
-                            now,
-                            action,
-                            keyCode,
-                            0,
-                            0,
-                            spoofedDeviceId,
-                            0,
-                            KeyEvent.FLAG_FROM_SYSTEM,
-                            source
+            // If user just toggled PPSSPP mode OFF, cleanly release any held PPSSPP analog or button keys
+            if (prevFrame.isPpssppMode && !newFrame.isPpssppMode) {
+                val oldAnalogMask = previousPpssppAnalogMask.remove(slot) ?: 0
+                for (dirIdx in XboxButtonBits.ppssppAnalogDirKeyCodes.indices) {
+                    if ((oldAnalogMask and (1 shl dirIdx)) != 0) {
+                        dispatchPpssppKeyActionOnTv(
+                            keyCode = XboxButtonBits.ppssppAnalogDirKeyCodes[dirIdx],
+                            isDown = false,
+                            now = now,
+                            spoofedDeviceId = spoofedDeviceId,
+                            fgAct = fgAct,
+                            ime = ime
                         )
+                    }
+                }
+                for ((bitIndex, ppssppKeyCode) in XboxButtonBits.bitToPpssppKeyCode) {
+                    if (bitIndex != XboxButtonBits.BIT_MODE && prevFrame.isButtonDown(bitIndex)) {
+                        dispatchPpssppKeyActionOnTv(
+                            keyCode = ppssppKeyCode,
+                            isDown = false,
+                            now = now,
+                            spoofedDeviceId = spoofedDeviceId,
+                            fgAct = fgAct,
+                            ime = ime
+                        )
+                    }
+                }
+            }
 
-                        if (fgAct != null) {
-                            runCatching {
-                                val handled = fgAct.window?.superDispatchKeyEvent(keyEvent) ?: false
-                                if (!handled) {
-                                    fgAct.dispatchKeyEvent(keyEvent)
+            if (newFrame.isPpssppMode) {
+                // ── DEDICATED PPSSPP COMPATIBILITY PIPELINE ──
+                // 1. Diff all 17 buttons and emit a single clean, holdable PPSSPP keycode per button
+                for ((bitIndex, ppssppKeyCode) in XboxButtonBits.bitToPpssppKeyCode) {
+                    val wasDown = prevFrame.isPpssppMode && prevFrame.isButtonDown(bitIndex)
+                    val isDown = newFrame.isButtonDown(bitIndex)
+                    if (wasDown != isDown) {
+                        if (bitIndex == XboxButtonBits.BIT_MODE) {
+                            if (isDown) {
+                                KeyRemapperBridge.notifyNavigateToHomeTabInMainActivity()
+                                if (fgAct != null && fgAct.javaClass.simpleName == "MainActivity") {
+                                    onRemoteNavigateHome?.invoke()
+                                } else if (service != null) {
+                                    service.launchRnaTvHomeFromService()
+                                } else {
+                                    onRemoteNavigateHome?.invoke()
                                 }
-                                // Also remap primary Xbox A/B buttons to Android TV remote buttons for UI navigation
-                                if (keyCode == effectiveKeyCodes.first()) {
-                                    val mappedRemoteKey = when (defaultKeyCode) {
-                                        KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_DPAD_CENTER
-                                        KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_SELECT -> KeyEvent.KEYCODE_BACK
-                                        else -> null
+                            }
+                            continue
+                        }
+                        dispatchPpssppKeyActionOnTv(
+                            keyCode = ppssppKeyCode,
+                            isDown = isDown,
+                            now = now,
+                            spoofedDeviceId = spoofedDeviceId,
+                            fgAct = fgAct,
+                            ime = ime
+                        )
+                    }
+                }
+
+                // 2. Map Left Analog Stick smoothly to PPSSPP's built-in Analog Stick keys (I=Up, K=Down, J=Left, L=Right)
+                //    with deadzone hysteresis (engage >= 0.34f, release < 0.24f) supporting 8-way diagonals & continuous hold.
+                val prevAnalogMask = previousPpssppAnalogMask[slot] ?: 0
+                val upActive = if ((prevAnalogMask and 1) != 0) newFrame.axisY < -0.24f else newFrame.axisY <= -0.34f
+                val downActive = if ((prevAnalogMask and 2) != 0) newFrame.axisY > 0.24f else newFrame.axisY >= 0.34f
+                val leftActive = if ((prevAnalogMask and 4) != 0) newFrame.axisX < -0.24f else newFrame.axisX <= -0.34f
+                val rightActive = if ((prevAnalogMask and 8) != 0) newFrame.axisX > 0.24f else newFrame.axisX >= 0.34f
+
+                val nextAnalogMask =
+                    (if (upActive) 1 else 0) or
+                    (if (downActive) 2 else 0) or
+                    (if (leftActive) 4 else 0) or
+                    (if (rightActive) 8 else 0)
+
+                if (nextAnalogMask != prevAnalogMask) {
+                    previousPpssppAnalogMask[slot] = nextAnalogMask
+                    for (dirIdx in XboxButtonBits.ppssppAnalogDirKeyCodes.indices) {
+                        val bit = 1 shl dirIdx
+                        val wasDirDown = (prevAnalogMask and bit) != 0
+                        val isDirDown = (nextAnalogMask and bit) != 0
+                        if (wasDirDown != isDirDown) {
+                            dispatchPpssppKeyActionOnTv(
+                                keyCode = XboxButtonBits.ppssppAnalogDirKeyCodes[dirIdx],
+                                isDown = isDirDown,
+                                now = now,
+                                spoofedDeviceId = spoofedDeviceId,
+                                fgAct = fgAct,
+                                ime = ime
+                            )
+                        }
+                    }
+                }
+            } else {
+                // ── STANDARD XBOX WIRELESS CONTROLLER PIPELINE ──
+                // 1. Diff all 17 Xbox buttons and emit BOTH their custom/Xbox keycode AND generic BUTTON_1..16 keycode
+                for ((bitIndex, defaultKeyCode) in XboxButtonBits.bitToKeyCode) {
+                    val wasDown = !prevFrame.isPpssppMode && prevFrame.isButtonDown(bitIndex)
+                    val isDown = newFrame.isButtonDown(bitIndex)
+                    if (wasDown != isDown) {
+                        val action = if (isDown) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP
+
+                        if (defaultKeyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
+                            if (isDown) {
+                                KeyRemapperBridge.notifyNavigateToHomeTabInMainActivity()
+                                if (fgAct != null && fgAct.javaClass.simpleName == "MainActivity") {
+                                    onRemoteNavigateHome?.invoke()
+                                } else if (service != null) {
+                                    service.launchRnaTvHomeFromService()
+                                } else {
+                                    onRemoteNavigateHome?.invoke()
+                                }
+                            }
+                            continue
+                        }
+
+                        val effectiveKeyCodes = RnaKeyLinksRegistry.getEffectiveKeyCodesForBit(ctx, bitIndex)
+                        for (keyCode in effectiveKeyCodes) {
+                            val source = if (keyCode in listOf(
+                                    KeyEvent.KEYCODE_DPAD_UP,
+                                    KeyEvent.KEYCODE_DPAD_DOWN,
+                                    KeyEvent.KEYCODE_DPAD_LEFT,
+                                    KeyEvent.KEYCODE_DPAD_RIGHT
+                                )
+                            ) {
+                                InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD or InputDevice.SOURCE_JOYSTICK
+                            } else {
+                                InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_JOYSTICK or InputDevice.SOURCE_KEYBOARD
+                            }
+
+                            val keyEvent = KeyEvent(
+                                now,
+                                now,
+                                action,
+                                keyCode,
+                                0,
+                                0,
+                                spoofedDeviceId,
+                                0,
+                                KeyEvent.FLAG_FROM_SYSTEM,
+                                source
+                            )
+
+                            if (fgAct != null) {
+                                runCatching {
+                                    val handled = fgAct.window?.superDispatchKeyEvent(keyEvent) ?: false
+                                    if (!handled) {
+                                        fgAct.dispatchKeyEvent(keyEvent)
                                     }
-                                    if (mappedRemoteKey != null && !handled) {
-                                        val remoteEv = KeyEvent(
-                                            now,
-                                            now,
-                                            action,
-                                            mappedRemoteKey,
-                                            0,
-                                            0,
-                                            spoofedDeviceId,
-                                            0,
-                                            KeyEvent.FLAG_FROM_SYSTEM,
-                                            InputDevice.SOURCE_DPAD
-                                        )
-                                        val rHandled = fgAct.window?.superDispatchKeyEvent(remoteEv) ?: false
-                                        if (!rHandled) {
-                                            fgAct.dispatchKeyEvent(remoteEv)
+                                    // Also remap primary Xbox A/B buttons to Android TV remote buttons for UI navigation
+                                    if (keyCode == effectiveKeyCodes.first()) {
+                                        val mappedRemoteKey = when (defaultKeyCode) {
+                                            KeyEvent.KEYCODE_BUTTON_A -> KeyEvent.KEYCODE_DPAD_CENTER
+                                            KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_SELECT -> KeyEvent.KEYCODE_BACK
+                                            else -> null
+                                        }
+                                        if (mappedRemoteKey != null && !handled) {
+                                            val remoteEv = KeyEvent(
+                                                now,
+                                                now,
+                                                action,
+                                                mappedRemoteKey,
+                                                0,
+                                                0,
+                                                spoofedDeviceId,
+                                                0,
+                                                KeyEvent.FLAG_FROM_SYSTEM,
+                                                InputDevice.SOURCE_DPAD
+                                            )
+                                            val rHandled = fgAct.window?.superDispatchKeyEvent(remoteEv) ?: false
+                                            if (!rHandled) {
+                                                fgAct.dispatchKeyEvent(remoteEv)
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        } else {
-                            // External app (PPSSPP, RetroArch, TV Quick Actions Pro, YouTube, etc.):
-                            // 1. Optional Keyboard IME hardware KeyEvent injection (when enabled in Control Panel / Key Link Editor)
-                            if (isDown) {
-                                ime?.injectHardwareKeyEvent(keyCode, isGamepad = true)
-                            }
-                            // 2. Low-level InputManager + shell keyevent injection
-                            injectInputEventViaInputManager(keyEvent)
-                            if (isDown) {
-                                dispatchShellInputKeyEventAsync(keyCode)
-                            }
-                            // 3. Execute universal AccessibilityService action once per button press (on the primary keycode)
-                            if (isDown && keyCode == effectiveKeyCodes.first()) {
-                                service?.dispatchPhysicalKeyOrGamepadActionOverExternalApp(defaultKeyCode)
+                            } else {
+                                // External app (RetroArch, TV Quick Actions Pro, YouTube, etc.):
+                                // 1. Optional Keyboard IME hardware KeyEvent injection (when enabled in Control Panel / Key Link Editor)
+                                if (isDown) {
+                                    ime?.injectHardwareKeyEvent(keyCode, isGamepad = true)
+                                }
+                                // 2. Low-level InputManager + shell keyevent injection
+                                injectInputEventViaInputManager(keyEvent)
+                                if (isDown) {
+                                    dispatchShellInputKeyEventAsync(keyCode)
+                                }
+                                // 3. Execute universal AccessibilityService action once per button press (on the primary keycode)
+                                if (isDown && keyCode == effectiveKeyCodes.first()) {
+                                    service?.dispatchPhysicalKeyOrGamepadActionOverExternalApp(defaultKeyCode)
+                                }
                             }
                         }
                     }
@@ -1364,34 +1553,37 @@ object RnaControllerNetworkBridge {
                 }
                 motionEvent.recycle()
 
-                // Allow smooth D-Pad focus navigation via Left Analog Stick and gesture scrolling via Right Analog Stick across ALL apps
-                val lastNav = lastAnalogNavTimestamp[slot] ?: 0L
-                if (now - lastNav > 190L) {
-                    when {
-                        newFrame.axisY < -0.52f || newFrame.axisHatY < -0.5f -> {
-                            lastAnalogNavTimestamp[slot] = now
-                            dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_UP, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
-                        }
-                        newFrame.axisY > 0.52f || newFrame.axisHatY > 0.5f -> {
-                            lastAnalogNavTimestamp[slot] = now
-                            dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_DOWN, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
-                        }
-                        newFrame.axisX < -0.52f || newFrame.axisHatX < -0.5f -> {
-                            lastAnalogNavTimestamp[slot] = now
-                            dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_LEFT, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
-                        }
-                        newFrame.axisX > 0.52f || newFrame.axisHatX > 0.5f -> {
-                            lastAnalogNavTimestamp[slot] = now
-                            dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
-                        }
-                        fgAct == null && (abs(newFrame.axisZ) > 0.45f || abs(newFrame.axisRZ) > 0.45f) -> {
-                            lastAnalogNavTimestamp[slot] = now
-                            service?.dispatchAnalogStickOverExternalApp(
-                                newFrame.axisX,
-                                newFrame.axisY,
-                                newFrame.axisZ,
-                                newFrame.axisRZ
-                            )
+                // Only run Android UI D-Pad tap navigation & Accessibility scroll in standard Xbox mode
+                // (never in PPSSPP mode where L-Stick maps cleanly to held PSP analog keys I/J/K/L).
+                if (!newFrame.isPpssppMode) {
+                    val lastNav = lastAnalogNavTimestamp[slot] ?: 0L
+                    if (now - lastNav > 190L) {
+                        when {
+                            newFrame.axisY < -0.52f || newFrame.axisHatY < -0.5f -> {
+                                lastAnalogNavTimestamp[slot] = now
+                                dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_UP, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
+                            }
+                            newFrame.axisY > 0.52f || newFrame.axisHatY > 0.5f -> {
+                                lastAnalogNavTimestamp[slot] = now
+                                dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_DOWN, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
+                            }
+                            newFrame.axisX < -0.52f || newFrame.axisHatX < -0.5f -> {
+                                lastAnalogNavTimestamp[slot] = now
+                                dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_LEFT, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
+                            }
+                            newFrame.axisX > 0.52f || newFrame.axisHatX > 0.5f -> {
+                                lastAnalogNavTimestamp[slot] = now
+                                dispatchTvKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT, InputDevice.SOURCE_GAMEPAD or InputDevice.SOURCE_DPAD, spoofedDeviceId)
+                            }
+                            fgAct == null && (abs(newFrame.axisZ) > 0.45f || abs(newFrame.axisRZ) > 0.45f) -> {
+                                lastAnalogNavTimestamp[slot] = now
+                                service?.dispatchAnalogStickOverExternalApp(
+                                    newFrame.axisX,
+                                    newFrame.axisY,
+                                    newFrame.axisZ,
+                                    newFrame.axisRZ
+                                )
+                            }
                         }
                     }
                 }
@@ -2034,7 +2226,8 @@ object RnaControllerNetworkBridge {
                     append(String.format(java.util.Locale.US, "%.3f", frame.axisLTrigger)).append("|")
                     append(String.format(java.util.Locale.US, "%.3f", frame.axisRTrigger)).append("|")
                     append(String.format(java.util.Locale.US, "%.3f", frame.axisHatX)).append("|")
-                    append(String.format(java.util.Locale.US, "%.3f", frame.axisHatY))
+                    append(String.format(java.util.Locale.US, "%.3f", frame.axisHatY)).append("|")
+                    append(if (frame.isPpssppMode) "1" else "0")
                 }
                 val bytes = msg.toByteArray(Charsets.UTF_8)
                 val pkt = DatagramPacket(bytes, bytes.size, InetAddress.getByName(tvIp), UDP_PORT)
@@ -2259,6 +2452,22 @@ object RnaControllerNetworkBridge {
         }
     }
 
+    fun clearActivePhoneGamepadState(isPpssppMode: Boolean = false) {
+        activePhoneButtonBitmask = 0
+        sendXboxGamepadFrameUdp(
+            lx = 0f,
+            ly = 0f,
+            rx = 0f,
+            ry = 0f,
+            lt = 0f,
+            rt = 0f,
+            hatX = 0f,
+            hatY = 0f,
+            buttonsMask = 0,
+            isPpssppMode = isPpssppMode
+        )
+    }
+
     fun sendXboxGamepadFrameUdp(
         lx: Float,
         ly: Float,
@@ -2268,7 +2477,8 @@ object RnaControllerNetworkBridge {
         rt: Float,
         hatX: Float,
         hatY: Float,
-        buttonsMask: Int
+        buttonsMask: Int,
+        isPpssppMode: Boolean = false
     ) {
         val tvIp = activePhoneTvIp.ifBlank { "127.0.0.1" }
         val devId = activePhoneDeviceId.ifBlank { "rna_phone_local" }
@@ -2287,7 +2497,8 @@ object RnaControllerNetworkBridge {
                 axisLTrigger = lt,
                 axisRTrigger = rt,
                 axisHatX = hatX,
-                axisHatY = hatY
+                axisHatY = hatY,
+                isPpssppMode = isPpssppMode
             )
         )
     }
